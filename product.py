@@ -493,31 +493,63 @@ class Product:
                 subtotal = Decimal(values[3].replace('$', ''))
                 contents = values[4] if values[4] else ""
                 
-                # 判断类型 (根据名字中是否包含'Box'来判断)
-                item_type = 'box' if 'Box' in name else 'veggie'
+                # 判断商品类型
+                if 'Box' in name:
+                    item_type = 'box'
+                else:
+                    # 通过商品名称判断类型
+                    if 'weight/kg' in name:
+                        item_type = 'weight'
+                    elif 'unit' in name:
+                        item_type = 'unit'
+                    elif 'pack' in name:
+                        item_type = 'pack'
+                    else:
+                        # 如果无法判断类型，记录到日志
+                        print(f"Warning: Unable to determine type for item: {name}")
+                        item_type = 'unknown'
                 
                 # 保存到字典
                 self.cart_dict[str(item)] = {
-                    'type': item_type,
-                    'name': name,
-                    'quantity': quantity,
-                    'price': price,
-                    'subtotal': subtotal,
-                    'contents': contents
+                    'type': item_type,          # 商品类型：'box', 'weight', 'unit', 'pack'
+                    'name': name,               # 原始完整名称
+                    'quantity': quantity,       # 数量
+                    'price': price,            # 单价
+                    'subtotal': subtotal,      # 小计
+                    'contents': contents       # 盒子内容（如果是box类型）
                 }
-               
                 
                 # 累计总价
                 total += subtotal
             
             # 清空购物车界面
             self._clear_cart()
-            print(self.cart_dict)
+            
+            # 打印订单信息，便于调试
+            print("Order details:")
+            for item_id, details in self.cart_dict.items():
+                print(f"\nItem ID: {item_id}")
+                for key, value in details.items():
+                    print(f"  {key}: {value}")
+            
             messagebox.showinfo("Success", f"Order submitted successfully! Total: ${float(total):.2f}")
                 
         except Exception as e:
             messagebox.showerror("Error", f"Error submitting order: {str(e)}")
+            # 打印详细错误信息便于调试
+            import traceback
+            print(f"Error details:\n{traceback.format_exc()}")
 
+    def _get_unit_by_type(self, item_type):
+        """根据商品类型返回对应的单位"""
+        unit_mapping = {
+            'box': 'box',
+            'weight': 'kg',
+            'unit': 'piece',
+            'pack': 'pack',
+            'unknown': 'item'
+        }
+        return unit_mapping.get(item_type, 'item')
     def _clear_cart(self):
         """清空购物车"""
         try:
