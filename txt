@@ -1,0 +1,5 @@
+现在有两大类商品A类和B类,同时在A类商品中,又有3子类商品weight/pack/unit;
+另外,A类商品, 每种商品都有商品名字和价格两个属性,
+B类商品又分为三类商品small/medium/large, small中有3个A类商品, medium中有4个, larege有5个; 用户选择尺寸时,每个premadebox会有默认的contents内容, 但同时也可以下拉contents中的每个item进行自定义内容.
+我想实现, 用户可以按照自己的需求选择商品和想要的数量, 然后点击add product,其选择的内容会显示在下方的购物车treeview中, 在treeview的下方又有一个提交订单的按钮submit order和清空购物车treeview的clear 按钮. 
+你觉得这个需求,使用什么tkinter组件比较适合, 并帮我生成一个案例.
