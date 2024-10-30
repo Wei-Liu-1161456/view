@@ -210,8 +210,8 @@ class Product:
         
         ttk.Button(
             button_frame,
-            text="Submit Order",
-            command=self._submit_order
+            text="Check Out Order",
+            command=self._check_out_order
         ).pack(side=tk.LEFT, padx=5)
         
         # 填充剩余空间 - row 4
@@ -305,8 +305,8 @@ class Product:
         
         ttk.Button(
             button_frame,
-            text="Submit Order",
-            command=self._submit_order
+            text="Check Out Order",
+            command=self._check_out_order
         ).pack(side=tk.LEFT, padx=5)
         
         # 填充剩余空间 - row 4
@@ -471,15 +471,17 @@ class Product:
         except Exception as e:
             messagebox.showerror("Error", f"Error adding to cart: {str(e)}")
 
-    def _submit_order(self):
+    def _check_out_order(self):
         """提交订单，保存购物车数据"""
         try:
             # 检查购物车是否为空
             if not self.cart_tree.get_children():
                 messagebox.showwarning("Warning", "Cart is empty")
                 return
-                
-            self.cart_dict = {}  # 重置购物车字典
+            
+            # 保存购物车数据
+            self.cart_dict = {}
+            # 购物车总价
             total = Decimal('0.00')
             
             # 遍历购物车items
@@ -522,20 +524,23 @@ class Product:
                 # 累计总价
                 total += subtotal
             
+            
             # 清空购物车界面
             self._clear_cart()
+
+            messagebox.showinfo("Success", f"Order checked out successfully! Total: ${float(total):.2f}")
+
+            # # 打印订单信息，便于调试
+            # print("Order details:")
+            # for item_id, details in self.cart_dict.items():
+            #     print(f"\nItem ID: {item_id}")
+            #     for key, value in details.items():
+            #         print(f"  {key}: {value}")
             
-            # 打印订单信息，便于调试
-            print("Order details:")
-            for item_id, details in self.cart_dict.items():
-                print(f"\nItem ID: {item_id}")
-                for key, value in details.items():
-                    print(f"  {key}: {value}")
             
-            messagebox.showinfo("Success", f"Order submitted successfully! Total: ${float(total):.2f}")
                 
         except Exception as e:
-            messagebox.showerror("Error", f"Error submitting order: {str(e)}")
+            messagebox.showerror("Error", f"Error checking out order: {str(e)}")
             # 打印详细错误信息便于调试
             import traceback
             print(f"Error details:\n{traceback.format_exc()}")
