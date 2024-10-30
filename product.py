@@ -523,28 +523,38 @@ class Product:
                 
                 # 累计总价
                 total += subtotal
-            
-            
-            # 清空购物车界面
-            self._clear_cart()
-
-            messagebox.showinfo("Success", f"Order checked out successfully! Total: ${float(total):.2f}")
-
-            # # 打印订单信息，便于调试
-            # print("Order details:")
-            # for item_id, details in self.cart_dict.items():
-            #     print(f"\nItem ID: {item_id}")
-            #     for key, value in details.items():
-            #         print(f"  {key}: {value}")
-            
-            
                 
+            # 显示支付选项对话框
+            response = messagebox.askyesnocancel(
+                "Payment Options",
+                f"Total Amount: ${float(total):.2f}\n\n"
+                "Would you like to pay now?\n\n"
+                " - Pay Now : Click 'Yes'\n\n"
+                " - Pay Later (Charge to Account) : Click 'No'\n\n"
+                " - Cancel : Click 'Cancel'"
+            )
+            
+            if response is None:  # Cancel was clicked
+                return
+                
+            if response:  # Yes was clicked - Pay Now
+                self._clear_cart()
+                # 调用父组件的回调函数来切换到支付界面
+                if hasattr(self.get_main_frame().master, 'make_payment_callback'):
+                    self.get_main_frame().master.make_payment_callback()
+                messagebox.showinfo("Payment", f"Please proceed with the payment of ${float(total):.2f}")
+            else:  # No was clicked - Pay Later
+                self._clear_cart()
+                messagebox.showinfo(
+                    "Charge to Account", 
+                    f"The amount ${float(total):.2f} has been charged to your account."
+                )
+                    
         except Exception as e:
             messagebox.showerror("Error", f"Error checking out order: {str(e)}")
             # 打印详细错误信息便于调试
             import traceback
             print(f"Error details:\n{traceback.format_exc()}")
-
     def _get_unit_by_type(self, item_type):
         """根据商品类型返回对应的单位"""
         unit_mapping = {
