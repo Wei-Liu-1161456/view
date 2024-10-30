@@ -505,12 +505,14 @@ class Product:
                     'subtotal': subtotal,
                     'contents': contents
                 }
+               
                 
                 # 累计总价
                 total += subtotal
             
             # 清空购物车界面
             self._clear_cart()
+            print(self.cart_dict)
             messagebox.showinfo("Success", f"Order submitted successfully! Total: ${float(total):.2f}")
                 
         except Exception as e:
