@@ -189,6 +189,8 @@ class Product:
             state='readonly'
         )
         self.a_quantity_spinbox.pack(side=tk.LEFT, padx=5)
+        # 设置默认值为 1
+        self.a_quantity_spinbox.set('1')
         
         # 按钮区域 - row 3
         button_frame = ttk.Frame(main_container)
@@ -281,6 +283,9 @@ class Product:
             state='readonly'
         )
         self.b_quantity_spinbox.pack(side=tk.LEFT, padx=5)
+        # 设置默认值为 1
+        self.b_quantity_spinbox.set('1')
+        
         
         # 按钮区域 - row 3
         button_frame = ttk.Frame(main_container)
@@ -359,7 +364,7 @@ class Product:
         self.cart_tree.column('Quantity', width=60, minwidth=60)
         self.cart_tree.column('Price', width=100, minwidth=100)
         self.cart_tree.column('Subtotal', width=100, minwidth=100)
-        self.cart_tree.column('Contents', width=400, minwidth=400)
+        self.cart_tree.column('Contents', width=400, minwidth=800)
         
         self.cart_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
