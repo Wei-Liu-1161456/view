@@ -69,20 +69,18 @@ class StaffHome:
         ])
         group_frame1.pack(fill=tk.X, pady=(0, 5))
         
-        # 客户管理组
+        # 客户管理
         group_frame2 = self.create_button_group("Customer Management", [
-            ("All Customers", self.view_all_customers),
-            ("All Customer Details", self.view_customer_details)
+            ("All Customers", self.view_all_customers)
         ])
         group_frame2.pack(fill=tk.X, pady=5)
         
-        # 销售报告组
+        # Sales Report
         group_frame3 = self.create_button_group("Sales Reports", [
-            ("Weekly Sales", self.view_weekly_sales),
-            ("Monthly Sales", self.view_monthly_sales),
-            ("Yearly Sales", self.view_yearly_sales),
+            ("Sales Report", self.view_sales_report),
             ("Popular Items", self.view_popular_items)
         ])
+
         group_frame3.pack(fill=tk.X, pady=5)
 
         # 使用Frame包装分隔线和退出按钮，将它们推到底部
@@ -164,22 +162,10 @@ class StaffHome:
         self.update_display_area("All Customers", "Displaying list of all customers...")
         # 实现显示所有客户的功能
 
-    def view_customer_details(self):
-        self.update_display_area("Customer Details", "Displaying detailed customer information...")
-        # 实现显示客户详细信息的功能
-
     # 销售报告功能
-    def view_weekly_sales(self):
-        self.update_display_area("Weekly Sales Report", "Displaying weekly sales statistics...")
-        # 实现显示周销售报告的功能
-
-    def view_monthly_sales(self):
-        self.update_display_area("Monthly Sales Report", "Displaying monthly sales statistics...")
-        # 实现显示月销售报告的功能
-
-    def view_yearly_sales(self):
-        self.update_display_area("Yearly Sales Report", "Displaying yearly sales statistics...")
-        # 实现显示年销售报告的功能
+    def view_sales_report(self):  
+        self.update_display_area("Sales Report", "Displaying sales report...")
+        # 实现显示销售报告的功能
 
     def view_popular_items(self):
         self.update_display_area("Popular Items", "Displaying most popular items...")

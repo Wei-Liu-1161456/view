@@ -2,11 +2,15 @@ import pickle
 from datetime import date, timedelta
 from typing import List
 from decimal import Decimal
-from view.model import (
+from model import (
     Staff, Customer, CorporateCustomer,
     Order, CreditCardPayment, DebitCardPayment,
     DELIVERY_RADIUS_KM, DELIVERY_FEE
 )
+import sys
+import os
+# 将当前工作目录添加到路径中
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 def get_customer_distance(address: str) -> int:
     """Extract distance from customer address"""
@@ -153,8 +157,8 @@ pri_cust_member1 = Customer("Sally", "Smith", "privateSS", "12345", "Distance 10
 pri_cust_member2 = Customer("Tom", "Brown", "privateTB", "12345", "Distance 30", Decimal('0.00'), Decimal('100.00'), "P1001")
 
 # Create instances of the corporate customer class
-co_cust_member1 = CorporateCustomer("Kim", "King", "corporateKK", "12345", "Distance 20", Decimal('0.00'), Decimal('100.00'), Decimal('0.10'), "C1000")
-co_cust_member2 = CorporateCustomer("Luna", "Lory", "corporateLL", "12345", "Distance 40", Decimal('0.00'), Decimal('100.00'), Decimal('0.10'), "C1001")
+co_cust_member1 = CorporateCustomer("Kim", "King", "corporateKK", "12345", "Distance 30", Decimal('0.00'), Decimal('100.00'), Decimal('0.10'), "C1000")
+co_cust_member2 = CorporateCustomer("Luna", "Lory", "corporateLL", "12345", "Distance 20", Decimal('0.00'), Decimal('100.00'), Decimal('0.10'), "C1001")
 
 # Create dictionaries to store the data
 staff_members = {"S1000": staff_member}
