@@ -35,119 +35,119 @@ def calculate_order_amounts(customer: Customer, base_amount: Decimal) -> tuple[D
     
     return discounted_amount, delivery_fee, total_amount
 
-def create_test_orders_and_payments():
-    # Get today's date
-    today = date.today()
+# def create_test_orders_and_payments():
+#     # Get today's date
+#     today = date.today()
     
-    # Generate test dates ensuring all are in the past
-    test_dates = []
+#     # Generate test dates ensuring all are in the past
+#     test_dates = []
     
-    # This week (only past days)
-    start_of_week = today - timedelta(days=today.weekday())
-    for i in range(today.weekday()):
-        test_day = start_of_week + timedelta(days=i)
-        if test_day < today:
-            test_dates.append(test_day)
+#     # This week (only past days)
+#     start_of_week = today - timedelta(days=today.weekday())
+#     for i in range(today.weekday()):
+#         test_day = start_of_week + timedelta(days=i)
+#         if test_day < today:
+#             test_dates.append(test_day)
     
-    # Last week (2 samples)
-    start_of_last_week = start_of_week - timedelta(days=7)
-    test_dates.extend([
-        start_of_last_week + timedelta(days=2),
-        start_of_last_week + timedelta(days=4)
-    ])
+#     # Last week (2 samples)
+#     start_of_last_week = start_of_week - timedelta(days=7)
+#     test_dates.extend([
+#         start_of_last_week + timedelta(days=2),
+#         start_of_last_week + timedelta(days=4)
+#     ])
     
-    # This month (2 samples from past days)
-    start_of_month = date(today.year, today.month, 1)
-    if start_of_month < today:
-        test_dates.extend([
-            start_of_month + timedelta(days=min(5, (today - start_of_month).days - 1)),
-            start_of_month + timedelta(days=min(10, (today - start_of_month).days - 1))
-        ])
+#     # This month (2 samples from past days)
+#     start_of_month = date(today.year, today.month, 1)
+#     if start_of_month < today:
+#         test_dates.extend([
+#             start_of_month + timedelta(days=min(5, (today - start_of_month).days - 1)),
+#             start_of_month + timedelta(days=min(10, (today - start_of_month).days - 1))
+#         ])
     
-    # Last month (2 samples)
-    last_month = (today.replace(day=1) - timedelta(days=1))
-    test_dates.extend([
-        date(last_month.year, last_month.month, 10),
-        date(last_month.year, last_month.month, 20)
-    ])
+#     # Last month (2 samples)
+#     last_month = (today.replace(day=1) - timedelta(days=1))
+#     test_dates.extend([
+#         date(last_month.year, last_month.month, 10),
+#         date(last_month.year, last_month.month, 20)
+#     ])
     
-    # Earlier this year (2 samples)
-    if today.month > 2:
-        test_dates.extend([
-            date(today.year, today.month-2, 15),
-            date(today.year, today.month-2, 25)
-        ])
+#     # Earlier this year (2 samples)
+#     if today.month > 2:
+#         test_dates.extend([
+#             date(today.year, today.month-2, 15),
+#             date(today.year, today.month-2, 25)
+#         ])
     
-    # Past year (2 samples)
-    test_dates.extend([
-        today - timedelta(days=200),
-        today - timedelta(days=300)
-    ])
+#     # Past year (2 samples)
+#     test_dates.extend([
+#         today - timedelta(days=200),
+#         today - timedelta(days=300)
+#     ])
 
-    # Sort dates in ascending order
-    test_dates.sort()
+#     # Sort dates in ascending order
+#     test_dates.sort()
 
-    # Generate orders and payments for P1000 (private customer)
-    base_amount = Decimal('50.00')
-    for idx, order_date in enumerate(test_dates):
-        # Calculate amounts
-        order_amount, delivery_fee, total_amount = calculate_order_amounts(pri_cust_member1, base_amount)
+#     # Generate orders and payments for P1000 (private customer)
+#     base_amount = Decimal('50.00')
+#     for idx, order_date in enumerate(test_dates):
+#         # Calculate amounts
+#         order_amount, delivery_fee, total_amount = calculate_order_amounts(pri_cust_member1, base_amount)
         
-        # Create order
-        order = Order(pri_cust_member1, order_date, "fulfilled")  # order_number 参数虽然不用但还是要传空字符串
-        order.order_amount = order_amount
-        order.delivery_fee = delivery_fee
-        order.total_amount = total_amount
-        pri_cust_member1.list_of_orders.append(order)
+#         # Create order
+#         order = Order(pri_cust_member1, order_date, "fulfilled")  # order_number 参数虽然不用但还是要传空字符串
+#         order.order_amount = order_amount
+#         order.delivery_fee = delivery_fee
+#         order.total_amount = total_amount
+#         pri_cust_member1.list_of_orders.append(order)
         
-        # Create alternating credit/debit card payments
-        if idx % 2 == 0:
-            payment = CreditCardPayment(
-                total_amount,
-                order_date,
-                "4111-1111-1111-1111",
-                "VISA",
-                date(2025, 12, 31)
-            )
-        else:
-            payment = DebitCardPayment(
-                total_amount,
-                order_date,
-                "ABC Bank",
-                "1234-5678-9012-3456"
-            )
-        pri_cust_member1.list_of_payments.append(payment)
+#         # Create alternating credit/debit card payments
+#         if idx % 2 == 0:
+#             payment = CreditCardPayment(
+#                 total_amount,
+#                 order_date,
+#                 "4111-1111-1111-1111",
+#                 "VISA",
+#                 date(2025, 12, 31)
+#             )
+#         else:
+#             payment = DebitCardPayment(
+#                 total_amount,
+#                 order_date,
+#                 "ABC Bank",
+#                 "1234-5678-9012-3456"
+#             )
+#         pri_cust_member1.list_of_payments.append(payment)
 
-    # Generate orders and payments for C1000 (corporate customer)
-    base_amount = Decimal('100.00')
-    for idx, order_date in enumerate(test_dates):
-        # Calculate amounts
-        order_amount, delivery_fee, total_amount = calculate_order_amounts(co_cust_member1, base_amount)
+#     # Generate orders and payments for C1000 (corporate customer)
+#     base_amount = Decimal('100.00')
+#     for idx, order_date in enumerate(test_dates):
+#         # Calculate amounts
+#         order_amount, delivery_fee, total_amount = calculate_order_amounts(co_cust_member1, base_amount)
         
-        # Create order
-        order = Order(co_cust_member1, order_date, "fulfilled")  # 同上
-        order.order_amount = order_amount
-        order.delivery_fee = delivery_fee
-        order.total_amount = total_amount
-        co_cust_member1.list_of_orders.append(order)
+#         # Create order
+#         order = Order(co_cust_member1, order_date, "fulfilled")  # 同上
+#         order.order_amount = order_amount
+#         order.delivery_fee = delivery_fee
+#         order.total_amount = total_amount
+#         co_cust_member1.list_of_orders.append(order)
         
-        # Create alternating payment types
-        if idx % 2 == 0:
-            payment = CreditCardPayment(
-                total_amount,
-                order_date,
-                "5555-5555-5555-5555",
-                "MASTERCARD",
-                date(2025, 12, 31)
-            )
-        else:
-            payment = DebitCardPayment(
-                total_amount,
-                order_date,
-                "XYZ Bank",
-                "9876-5432-1098-7654"
-            )
-        co_cust_member1.list_of_payments.append(payment)
+#         # Create alternating payment types
+#         if idx % 2 == 0:
+#             payment = CreditCardPayment(
+#                 total_amount,
+#                 order_date,
+#                 "5555-5555-5555-5555",
+#                 "MASTERCARD",
+#                 date(2025, 12, 31)
+#             )
+#         else:
+#             payment = DebitCardPayment(
+#                 total_amount,
+#                 order_date,
+#                 "XYZ Bank",
+#                 "9876-5432-1098-7654"
+#             )
+#         co_cust_member1.list_of_payments.append(payment)
 
 # Create instances of the staff class
 staff_member = Staff("John", "Doe", "staffJD", "12345", "Sales Department", date(2021, 1, 1), "S1000")
@@ -169,29 +169,29 @@ def save_data(filename, data, datatype):
     """Save data to pickle file"""
     with open(filename, 'wb') as file:
         pickle.dump(data, file)
-        print(f"{datatype} data saved to {filename}")
+        # print(f"{datatype} data saved to {filename}")
 
-def analyze_test_data():
-    """Load and analyze the test data"""
-    def print_customer_orders(customer, customer_type):
-        print(f"\n{customer_type} Customer: {customer.first_name} {customer.last_name}")
-        print(f"Customer ID: {customer.cust_id}")
-        print(f"Address: {customer.cust_address}")
-        if isinstance(customer, CorporateCustomer):
-            print(f"Discount Rate: {customer.discount_rate:.1%}")
+# def analyze_test_data():
+#     """Load and analyze the test data"""
+#     def print_customer_orders(customer, customer_type):
+#         print(f"\n{customer_type} Customer: {customer.first_name} {customer.last_name}")
+#         print(f"Customer ID: {customer.cust_id}")
+#         print(f"Address: {customer.cust_address}")
+#         if isinstance(customer, CorporateCustomer):
+#             print(f"Discount Rate: {customer.discount_rate:.1%}")
         
-        print("\nOrders:")
-        for order in customer.list_of_orders:
-            print(f"\nOrder {order.order_number} - Date: {order.order_date}")
-            print(f"Base Amount: ${order.order_amount:.2f}")
-            if order.delivery_fee > 0:
-                print(f"Delivery Fee: ${order.delivery_fee:.2f}")
-            print(f"Total Amount: ${order.total_amount:.2f}")
+#         print("\nOrders:")
+#         for order in customer.list_of_orders:
+#             print(f"\nOrder {order.order_number} - Date: {order.order_date}")
+#             print(f"Base Amount: ${order.order_amount:.2f}")
+#             if order.delivery_fee > 0:
+#                 print(f"Delivery Fee: ${order.delivery_fee:.2f}")
+#             print(f"Total Amount: ${order.total_amount:.2f}")
         
-        print("\nPayments:")
-        for payment in customer.list_of_payments:
-            payment_type = "Credit Card" if isinstance(payment, CreditCardPayment) else "Debit Card"
-            print(f"{payment_type} Payment - Date: {payment.payment_date}, Amount: ${payment.payment_amount:.2f}")
+#         print("\nPayments:")
+#         for payment in customer.list_of_payments:
+#             payment_type = "Credit Card" if isinstance(payment, CreditCardPayment) else "Debit Card"
+#             print(f"{payment_type} Payment - Date: {payment.payment_date}, Amount: ${payment.payment_amount:.2f}")
 
     # Load data
     with open("data/private_customers.pkl", 'rb') as file:
@@ -205,18 +205,19 @@ def analyze_test_data():
     #显示私人客户和公司客户的信息
     print(private_customers)
     print(corporate_customers)
-    print_customer_orders(private_customers["P1000"], "Private")
-    print("\n" + "="*50)
-    print_customer_orders(corporate_customers["C1000"], "Corporate")
+    # print_customer_orders(private_customers["P1000"], "Private")
+    # print("\n" + "="*50)
+    # print_customer_orders(corporate_customers["C1000"], "Corporate")
 
 # Create test data and save
-create_test_orders_and_payments()
+# create_test_orders_and_payments()
 
 # Save all data
 save_data("data/staffs.pkl", staff_members, "Staff")
+print()
 save_data("data/private_customers.pkl", private_customers, "Private customers")
 save_data("data/corporate_customers.pkl", corporate_customers, "Corporate customers")
 
 # Analyze the test data
-if __name__ == "__main__":
-    analyze_test_data()
+# if __name__ == "__main__":
+#     analyze_test_data()

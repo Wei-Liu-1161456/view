@@ -164,9 +164,9 @@ class Login:
     def run(self):
         self.root.mainloop()
 
-# Create Tkinter window
-if __name__ == "__main__":
-    # root = tk.Tk()
+# # Create Tkinter window
+# if __name__ == "__main__":
+#     # root = tk.Tk()
 
-    app = Login()  # Create Login instance
-    app.run()
+#     app = Login()  # Create Login instance
+#     app.run()

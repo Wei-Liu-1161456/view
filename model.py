@@ -124,6 +124,9 @@ class CorporateCustomer(Customer):
                 f"Max Owing: {self.max_owing}\n"
                 f"Discount Rate: {self.discount_rate:.2%}")  # Display discount rate as a percentage
     
+    # place order: this method is needed to be override, because the corporate customer has a discount rate
+    def place_order(self):
+        pass
 
 class Payment:
     payment_id = 1000
@@ -163,7 +166,22 @@ class Order:
         self.delivery_fee = DELIVERY_FEE
         self.discount = Decimal('0.00')
         self.delivery_fee = Decimal('0.00')
-        self.total_amount = Decimal('0.00')
+        self.total_amount = Decimal('0.00') # including delivery fee
+        self.sales_amount = Decimal('0.00') # excluding delivery fee
+
+    # add item to the order
+    def add_item(self):
+        # add item to the list of items
+        # update the total amount of the order
+        pass
+
+    # delivery fee: according the distance to calculate the delivery fee
+    def delivery_fee(self):
+        # 如果距离大于20km，delivery fee = 10
+        # 如果距离小于等于20km，delivery fee = 0
+        pass
+
+    # 
 
 # class OrderLine:
 #     def __init__(self, item_number: int):
@@ -199,6 +217,7 @@ class WeightedVeggie(Veggie):
     # 计算商品的总价
     def calculate_total(self):
         self.total_price = self.weight * self.price_per_kilo
+
 
 class PackVeggie(Veggie):
     def __init__(self, veg_name: str, num_of_pack: int, price_per_pack: Decimal):
