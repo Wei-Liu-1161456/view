@@ -20,7 +20,9 @@ class Login:
         # Load customer and staff data
         self.private_customers = self.load_data("data/private_customers.pkl")
         self.corporate_customers = self.load_data("data/corporate_customers.pkl")
-        self.staff_member = self.load_data("data/staffs.pkl")  # Load staff data
+        # self.staff_member = self.load_data("data/staffs.pkl")  # Load staff data
+        # Load customer and staff data
+        self.staff_members = self.load_data("data/staffs.pkl")  # Load staffs data
 
         # Create user interface
         self.create_widgets()
@@ -34,8 +36,11 @@ class Login:
         user_info = []
         
         # Adding staff information (assumed to have only one staff)
-        if self.staff_member:
-            user_info.append(f"{self.staff_member.username}, {self.staff_member.password}")
+        # if self.staff_members:
+            # user_info.append(f"{self.staff_member.username}, {self.staff_member.password}")
+            # Adding staff information
+        for staff in self.staff_members.values():  # Changed to iterate through staffs
+                user_info.append(f"{staff.username}, {staff.password}")
 
         # Add private customer information
         for customer in self.private_customers.values():
@@ -50,11 +55,11 @@ class Login:
     # Login verification function
     def verify_login(self, username, password):
         """验证登录并返回用户对象和类型"""
-        # 检查staff
-        if (self.staff_member and 
-            self.staff_member.username == username and 
-            self.staff_member.password == password):
-            return self.staff_member, "staff"
+        # 检查staffs
+        for staff in self.staff_members.values():  # Changed to iterate through staffs
+            if (staff.username == username and 
+                staff.password == password):
+                return staff, "staff"
 
         # 检查private customers
         for customer in self.private_customers.values():
