@@ -2,6 +2,9 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from decimal import Decimal, ROUND_HALF_UP
 import os
+from my_widgts import ValidatedSpinbox
+from decimal import InvalidOperation
+
 
 class Product:
     def __init__(self, parent):
@@ -180,14 +183,17 @@ class Product:
         quantity_frame.grid(row=2, column=0, sticky='ew', padx=5, pady=5)
         
         ttk.Label(quantity_frame, text="Quantity:").pack(side=tk.LEFT, padx=5)
-        self.a_quantity_spinbox = ttk.Spinbox(
-            quantity_frame,
-            from_=1,
-            to=100,
-            width=5,
-            wrap=True,
-            state='readonly'
-        )
+        # self.a_quantity_spinbox = ttk.Spinbox(
+        #     quantity_frame,
+        #     from_=1,
+        #     to=100,
+        #     width=5,
+        #     wrap=True,
+        #     state='readonly'
+        # )
+        # 使用自定义的ValidatedSpinbox
+        self.a_quantity_spinbox = ValidatedSpinbox(quantity_frame)
+        self.a_quantity_spinbox.model = 'float'
         self.a_quantity_spinbox.pack(side=tk.LEFT, padx=5)
         # 设置默认值为 1
         self.a_quantity_spinbox.set('1')
@@ -274,14 +280,16 @@ class Product:
         quantity_frame.grid(row=2, column=0, sticky='ew', padx=5, pady=5)
         
         ttk.Label(quantity_frame, text="Quantity:").pack(side=tk.LEFT, padx=5)
-        self.b_quantity_spinbox = ttk.Spinbox(
-            quantity_frame,
-            from_=1,
-            to=100,
-            width=5,
-            wrap=True,
-            state='readonly'
-        )
+        # self.b_quantity_spinbox = ttk.Spinbox(
+        #     quantity_frame,
+        #     from_=1,
+        #     to=100,
+        #     width=5,
+        #     wrap=True,
+        #     state='readonly'
+        # )
+        # 使用自定义的ValidatedSpinbox
+        self.b_quantity_spinbox = ValidatedSpinbox(quantity_frame)
         self.b_quantity_spinbox.pack(side=tk.LEFT, padx=5)
         # 设置默认值为 1
         self.b_quantity_spinbox.set('1')
@@ -316,6 +324,9 @@ class Product:
         
         # 更新contents显示
         self._update_b_contents()
+
+        # 设置quantity的model
+        self.b_quantity_spinbox.model = 'int'
 
     def _setup_cart(self):
         """设置购物车界面"""
@@ -372,6 +383,12 @@ class Product:
         """更新A类商品下拉框的内容"""
         current_type = self.a_type_var.get()
         
+        # 切换quantiy的model
+        if current_type == 'weight/kg':
+            self.a_quantity_spinbox.model = 'float'
+        else:
+            self.a_quantity_spinbox.model = 'int'
+
         # 类型名称映射
         type_mapping = {
             'weight/kg': 'weight',
@@ -414,30 +431,39 @@ class Product:
                 label.grid_remove()
                 combo.grid_remove()
 
+
     def _add_to_cart_a(self):
-        """添加A类商品(Veggies)到购物车"""
+        """Add Veggie (Class A) product to the shopping cart."""
         try:
             product = self.a_product_var.get()
             if not product:
                 messagebox.showwarning("Warning", "Please select a product")
                 return
-                
-            quantity = int(self.a_quantity_spinbox.get())
+
+            # Allow for decimal quantities without enforcing two decimal places
+            quantity = Decimal(self.a_quantity_spinbox.get())
+            
+            # Ensure quantity is positive
+            if quantity <= 0:
+                messagebox.showwarning("Warning", "Quantity must be greater than zero")
+                return
+            
             name, price = product.split(' - $')
             price = Decimal(price).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-            subtotal = (price * Decimal(quantity)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-            
+            subtotal = (price * quantity).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
             self.cart_tree.insert('', 'end', values=(
                 name,
                 quantity,
                 f"${float(price):.2f}",
                 f"${float(subtotal):.2f}",
-                ""  # 普通商品没有contents
+                ""  # No contents for standard products
             ))
-        except ValueError as e:
+        except (ValueError, InvalidOperation) as e:
             messagebox.showerror("Error", f"Invalid input: {str(e)}")
         except Exception as e:
             messagebox.showerror("Error", f"Error adding to cart: {str(e)}")
+
 
     def _add_to_cart_b(self):
         """添加B类商品(Premade Boxes)到购物车"""
@@ -472,34 +498,34 @@ class Product:
             messagebox.showerror("Error", f"Error adding to cart: {str(e)}")
 
     def _check_out_order(self):
-        """提交订单，保存购物车数据"""
+        """Submit the order and save the cart data."""
         try:
-            # 检查购物车是否为空
+            # Check if the cart is empty
             if not self.cart_tree.get_children():
                 messagebox.showwarning("Warning", "Cart is empty")
                 return
             
-            # 保存购物车数据
+            # Save cart data
             self.cart_dict = {}
-            # 购物车总价
+            # Total price of the cart
             total = Decimal('0.00')
             
-            # 遍历购物车items
+            # Iterate through cart items
             for item in self.cart_tree.get_children():
                 values = self.cart_tree.item(item)['values']
                 
-                # 解析值[Product, Quantity, Price, Subtotal, Contents]
+                # Parse values [Product, Quantity, Price, Subtotal, Contents]
                 name = values[0]
-                quantity = int(values[1])
+                quantity = Decimal(values[1])  # Allow decimal quantities
                 price = Decimal(values[2].replace('$', ''))
                 subtotal = Decimal(values[3].replace('$', ''))
                 contents = values[4] if values[4] else ""
                 
-                # 判断商品类型
+                # Determine the item type
                 if 'Box' in name:
                     item_type = 'box'
                 else:
-                    # 通过商品名称判断类型
+                    # Determine the type based on the product name
                     if 'weight/kg' in name:
                         item_type = 'weight'
                     elif 'unit' in name:
@@ -507,24 +533,24 @@ class Product:
                     elif 'pack' in name:
                         item_type = 'pack'
                     else:
-                        # 如果无法判断类型，记录到日志
+                        # Log if the type cannot be determined
                         print(f"Warning: Unable to determine type for item: {name}")
                         item_type = 'unknown'
                 
-                # 保存到字典
+                # Save to the dictionary
                 self.cart_dict[str(item)] = {
-                    'type': item_type,          # 商品类型：'box', 'weight', 'unit', 'pack'
-                    'name': name,               # 原始完整名称
-                    'quantity': quantity,       # 数量
-                    'price': price,            # 单价
-                    'subtotal': subtotal,      # 小计
-                    'contents': contents       # 盒子内容（如果是box类型）
+                    'type': item_type,          # Item type: 'box', 'weight', 'unit', 'pack'
+                    'name': name,               # Original full name
+                    'quantity': quantity,       # Quantity
+                    'price': price,             # Unit price
+                    'subtotal': subtotal,       # Subtotal
+                    'contents': contents         # Box contents (if it's a box type)
                 }
                 
-                # 累计总价
+                # Accumulate total price
                 total += subtotal
                 
-            # 显示支付选项对话框
+            # Show payment options dialog
             response = messagebox.askyesnocancel(
                 "Payment Options",
                 f"Total Amount: ${float(total):.2f}\n\n"
@@ -534,12 +560,15 @@ class Product:
                 " - Cancel : Click 'Cancel'"
             )
             
+            # 打印订单信息
+            print(self.cart_dict)
+
             if response is None:  # Cancel was clicked
                 return
                 
             if response:  # Yes was clicked - Pay Now
                 self._clear_cart()
-                # 调用父组件的回调函数来切换到支付界面
+                # Call the parent component's callback to switch to the payment interface
                 if hasattr(self.get_main_frame().master, 'make_payment_callback'):
                     self.get_main_frame().master.make_payment_callback()
                 messagebox.showinfo("Payment", f"Please proceed with the payment of ${float(total):.2f}")
@@ -549,12 +578,13 @@ class Product:
                     "Charge to Account", 
                     f"The amount ${float(total):.2f} has been charged to your account."
                 )
-                    
+                
         except Exception as e:
             messagebox.showerror("Error", f"Error checking out order: {str(e)}")
-            # 打印详细错误信息便于调试
+            # Print detailed error information for debugging
             import traceback
             print(f"Error details:\n{traceback.format_exc()}")
+
     def _get_unit_by_type(self, item_type):
         """根据商品类型返回对应的单位"""
         unit_mapping = {

@@ -2,18 +2,18 @@ import tkinter as tk
 from tkinter import ttk
 
 class ValidatedSpinbox(ttk.Spinbox):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, from_=1, to=100, **kwargs):
         """
         初始化带验证的 Spinbox。支持整数和浮点数模式，最大值默认为 100。
         """
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, from_=from_, to=to, **kwargs)
         
         # 默认属性
-        self._model = 'int'  # 模式：'int' 表示正整数, 'float' 表示最多一位小数
-        self.max_value = 100  # 默认最大值
-        self.int_min = 1      # 整数模式下的最小值
-        self.float_min = 0.1  # 浮点模式下的最小值
-        self.default_value = 1  # 默认初始值
+        self._model = 'float'  # 模式：'int' 表示正整数, 'float' 表示最多一位小数
+        self.max_value = to    # 最大值（可以在初始化时动态设置）
+        self.int_min = from_   # 整数模式下的最小值
+        self.float_min = 0.1   # 浮点模式下的最小值
+        self.default_value = from_  # 默认初始值为起始值
 
         # 配置验证命令
         self.configure(validate='key', validatecommand=(self.register(self._validate_input), '%P'))
@@ -70,22 +70,22 @@ class ValidatedSpinbox(ttk.Spinbox):
                 return False
         return False
 
-# 创建 Tkinter 主窗口
-root = tk.Tk()
-root.title("Customizable Spinbox Mode")
+# # 创建 Tkinter 主窗口
+# root = tk.Tk()
+# root.title("Customizable Spinbox Mode")
 
-# 初始化 Spinbox
-spinbox = ValidatedSpinbox(root, from_=0, to=100)
-spinbox.pack(padx=20, pady=10)
+# # 初始化 Spinbox
+# spinbox = ValidatedSpinbox(root)
+# spinbox.pack(padx=20, pady=10)
 
-# 设置 Spinbox 的模式为整数模式
-spinbox.model = 'int'
+# # 设置 Spinbox 的模式为整数模式
+# spinbox.model = 'int'
 
-# 添加按钮以切换模式
-def toggle_mode():
-    spinbox.model = 'float' if spinbox.model == 'int' else 'int'
+# # 添加按钮以切换模式
+# def toggle_mode():
+#     spinbox.model = 'float' if spinbox.model == 'int' else 'int'
 
-toggle_button = tk.Button(root, text="Toggle Mode", command=toggle_mode)
-toggle_button.pack(pady=10)
+# toggle_button = tk.Button(root, text="Toggle Mode", command=toggle_mode)
+# toggle_button.pack(pady=10)
 
-root.mainloop()
+# root.mainloop()
