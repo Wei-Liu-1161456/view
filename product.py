@@ -48,55 +48,57 @@ class Product:
             messagebox.showerror("Initialization Error", f"Error initializing product system: {str(e)}")
             raise
     
-    def _parse_veggies(self):
-        """解析veggies.txt获取所有蔬菜选项"""
-        try:
-            if not os.path.exists('static/veggies.txt'):
-                raise FileNotFoundError("static/veggies.txt file not found")
+    # def _parse_veggies(self):
+    #     """解析veggies.txt获取所有蔬菜选项"""
+    #     try:
+    #         if not os.path.exists('static/veggies.txt'):
+    #             raise FileNotFoundError("static/veggies.txt file not found")
                 
-            with open('static/veggies.txt', 'r') as f:
-                lines = f.readlines()
+    #         with open('static/veggies.txt', 'r') as f:
+    #             lines = f.readlines()
             
-            # 初始化蔬菜列表
-            self.all_veggies_list = []  # 所有蔬菜列表(供box contents使用)
-            self.veggies_weight_list = []  # weight类蔬菜列表
-            self.veggies_unit_list = []    # unit类蔬菜列表
-            self.veggies_pack_list = []    # pack类蔬菜列表
+    #         # 初始化蔬菜列表
+    #         self.all_veggies_list = []  # 所有蔬菜列表(供box contents使用)
+    #         self.veggies_weight_list = []  # weight类蔬菜列表
+    #         self.veggies_unit_list = []    # unit类蔬菜列表
+    #         self.veggies_pack_list = []    # pack类蔬菜列表
             
-            # 解析数据
-            current_type = None
-            for line in lines:
-                line = line.strip()
-                if not line:  # 跳过空行
-                    continue
+    #         # 解析数据
+    #         current_type = None
+    #         for line in lines:
+    #             line = line.strip()
+    #             if not line:  # 跳过空行
+    #                 continue
                     
-                if line.startswith('['):
-                    current_type = line[1:-1]  # 移除[]
-                elif '=' in line and current_type:
-                    name, price = line.split('=')
-                    name = name.strip()
-                    price_decimal = Decimal(price.strip()).quantize(
-                        Decimal('0.01'), rounding=ROUND_HALF_UP
-                    )
-                    formatted_item = f"{name} - ${float(price_decimal):.2f}"
+    #             if line.startswith('['):
+    #                 current_type = line[1:-1]  # 移除[]
+    #             elif '=' in line and current_type:
+    #                 name, price = line.split('=')
+    #                 name = name.strip()
+    #                 price_decimal = Decimal(price.strip()).quantize(
+    #                     Decimal('0.01'), rounding=ROUND_HALF_UP
+    #                 )
+    #                 formatted_item = f"{name} - ${float(price_decimal):.2f}"
                     
-                    # 添加到总列表
-                    self.all_veggies_list.append(formatted_item)
+    #                 # 添加到总列表
+    #                 self.all_veggies_list.append(formatted_item)
                     
-                    # 添加到对应类型列表
-                    if 'weight/kg' in name:
-                        self.veggies_weight_list.append(formatted_item)
-                    elif 'unit' in name:
-                        self.veggies_unit_list.append(formatted_item)
-                    elif 'pack' in name:
-                        self.veggies_pack_list.append(formatted_item)
+    #                 # 添加到对应类型列表
+    #                 if 'weight/kg' in name:
+    #                     self.veggies_weight_list.append(formatted_item)
+    #                 elif 'unit' in name:
+    #                     self.veggies_unit_list.append(formatted_item)
+    #                 elif 'pack' in name:
+    #                     self.veggies_pack_list.append(formatted_item)
+
+    #         print(self.all_veggies_list)
                         
-        except FileNotFoundError as e:
-            messagebox.showerror("File Error", str(e))
-            raise
-        except Exception as e:
-            messagebox.showerror("Error", f"Error parsing veggies.txt: {str(e)}")
-            raise
+    #     except FileNotFoundError as e:
+    #         messagebox.showerror("File Error", str(e))
+    #         raise
+    #     except Exception as e:
+    #         messagebox.showerror("Error", f"Error parsing veggies.txt: {str(e)}")
+    #         raise
     
     def _parse_premadeboxes(self):
         """解析premadeboxes.txt获取盒子配置"""

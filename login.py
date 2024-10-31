@@ -5,7 +5,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import tkinter as tk
 from tkinter import messagebox, ttk
 import pickle
-from model import Person, Staff, Customer, CorporateCustomer
+from view.model import Person, Staff, Customer, CorporateCustomer
 from customer_home import CustomerHome
 from staff_home import StaffHome
 # from controller import Company
