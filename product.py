@@ -505,9 +505,8 @@ class Product:
                 messagebox.showwarning("Warning", "Cart is empty")
                 return
             
-            # Save cart data
-            self.cart_dict = {}
-            # Total price of the cart
+            # Initialize cart list and total
+            self.cart_list = []
             total = Decimal('0.00')
             
             # Iterate through cart items
@@ -537,15 +536,17 @@ class Product:
                         print(f"Warning: Unable to determine type for item: {name}")
                         item_type = 'unknown'
                 
-                # Save to the dictionary
-                self.cart_dict[str(item)] = {
+                # Create item dictionary and append to list
+                cart_item = {
                     'type': item_type,          # Item type: 'box', 'weight', 'unit', 'pack'
                     'name': name,               # Original full name
                     'quantity': quantity,       # Quantity
                     'price': price,             # Unit price
                     'subtotal': subtotal,       # Subtotal
-                    'contents': contents         # Box contents (if it's a box type)
+                    'contents': contents        # Box contents (if it's a box type)
                 }
+            
+                self.cart_list.append(cart_item)
                 
                 # Accumulate total price
                 total += subtotal
@@ -561,7 +562,7 @@ class Product:
             )
             
             # 打印订单信息
-            print(self.cart_dict)
+            print(self.cart_list)
 
             if response is None:  # Cancel was clicked
                 return
