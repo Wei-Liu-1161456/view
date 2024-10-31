@@ -8,10 +8,11 @@ import pickle
 from model import Person, Staff, Customer, CorporateCustomer
 from customer_home import CustomerHome
 from staff_home import StaffHome
+# from controller import Company
 
 class Login:
-    def __init__(self, root):
-        self.root = root
+    def __init__(self, controller = None):
+        self.root = tk.Tk()
         self.root.title("FHV Company - Login")
         # 禁止调整窗口大小
         self.root.resizable(False, False)  # 禁止水平和垂直方向的缩放
@@ -155,9 +156,12 @@ class Login:
         for info in user_info:
             hint_text.insert(tk.END, f"{info}\n")
         hint_text.config(state='disabled')  # Set to read-only
+    def run(self):
+        self.root.mainloop()
 
 # Create Tkinter window
 if __name__ == "__main__":
-    root = tk.Tk()
-    app = Login(root)  # Create Login instance
-    root.mainloop()
+    # root = tk.Tk()
+
+    app = Login()  # Create Login instance
+    app.run()
