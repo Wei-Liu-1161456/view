@@ -454,7 +454,7 @@ class CorporateCustomer(Customer):
     def __str__(self) -> str:
         """String representation including discount rate"""
         base_str = super().__str__()
-        return base_str[:-1] + f"Discount Rate: {self.discount_rate:.0%}\n"
+        return base_str[:-1] + f"\nDiscount Rate: {self.discount_rate:.0%}\n"
 
     def can_place_order(self, order_amount: Decimal) -> bool:
         """Check if corporate customer can place order based on total amount and max owing limit"""

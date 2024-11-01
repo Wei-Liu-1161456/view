@@ -4,11 +4,11 @@ from decimal import Decimal, ROUND_HALF_UP
 import os
 from my_widgts import ValidatedSpinbox
 from decimal import InvalidOperation
-# from controller import Company  
+
 
 
 class Product:
-    def __init__(self, parent, controller):
+    def __init__(self, parent, controller, user):
         """
         初始化Product类
         parent: 父级窗口部件
@@ -16,6 +16,7 @@ class Product:
         try:
             # 拿到controller中的数据
             self.controller = controller
+            self.user = user
 
             # 初始化商品数据
             # 初始化蔬菜列表
@@ -36,7 +37,7 @@ class Product:
             # 创建主Frame
             self.main_frame = ttk.Frame(parent)
             
-            # 创建notebook
+            # 创建notebook (上层)
             self.notebook = ttk.Notebook(self.main_frame)
             self.notebook.pack(padx=10, pady=5, fill=tk.BOTH, expand=True)
             
@@ -50,10 +51,11 @@ class Product:
             self.veggie_type_var = tk.StringVar(value='weight/kg')
             self.box_size_var = tk.StringVar(value='small')
             
-            # 初始化界面
-            self._setup_veggie_products()
-            self._setup_box_products()
-            self._setup_cart()
+            # 初始化三层界面
+            self._setup_veggie_products()  # 上层 - 商品选择
+            self._setup_box_products()     # 上层 - 商品选择
+            self._setup_process_order()    # 中层 - 处理订单
+            self._setup_cart()             # 下层 - 购物车展示
             
         except Exception as e:
             messagebox.showerror("Initialization Error", f"Error initializing product system: {str(e)}")
@@ -67,11 +69,11 @@ class Product:
         main_container = ttk.Frame(self.veggie_frame)
         main_container.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         main_container.grid_columnconfigure(0, weight=1)
-        
+
         # A类商品选择区域 - row 0
         type_frame = ttk.Frame(main_container)
         type_frame.grid(row=0, column=0, sticky='ew', padx=5, pady=5)
-        
+
         # A类商品的Radiobuttons
         for i, veggie_type in enumerate(['weight/kg', 'unit', 'pack']):
             ttk.Radiobutton(
@@ -81,12 +83,12 @@ class Product:
                 variable=self.veggie_type_var,
                 command=self._update_veggie_products
             ).grid(row=0, column=i, padx=5)
-        
+
         # Product选择区域 - row 1
         product_frame = ttk.Frame(main_container)
         product_frame.grid(row=1, column=0, sticky='ew', padx=5, pady=5)
         product_frame.grid_columnconfigure(1, weight=1)
-        
+
         ttk.Label(product_frame, text="Product:").grid(row=0, column=0, padx=5)
         self.veggie_product_var = tk.StringVar()
         self.veggie_product_combo = ttk.Combobox(
@@ -96,47 +98,47 @@ class Product:
             width=40
         )
         self.veggie_product_combo.grid(row=0, column=1, sticky='ew', padx=5)
-        
+
         # Quantity选择区域 - row 2
         quantity_frame = ttk.Frame(main_container)
         quantity_frame.grid(row=2, column=0, sticky='ew', padx=5, pady=5)
-        
-        ttk.Label(quantity_frame, text="Quantity:").pack(side=tk.LEFT, padx=5)
-        
+
+        # Quantity标签和Spinbox
+        ttk.Label(quantity_frame, text="Quantity:").grid(row=0, column=0, padx=5, pady=5, sticky="w")
+
         # 使用自定义的ValidatedSpinbox
         self.veggie_quantity_spinbox = ValidatedSpinbox(quantity_frame)
         self.veggie_quantity_spinbox.model = 'float'
-        self.veggie_quantity_spinbox.pack(side=tk.LEFT, padx=5)
-        # 设置默认值为 1
-        self.veggie_quantity_spinbox.set('1')
-        
-        # 按钮区域 - row 3
+        self.veggie_quantity_spinbox.grid(row=0, column=1, padx=5, pady=5, sticky="w")
+        self.veggie_quantity_spinbox.set('1')  # 设置默认值为 1
+
+        # 按钮区域 - row 4
         button_frame = ttk.Frame(main_container)
-        button_frame.grid(row=3, column=0, sticky='ew', padx=5, pady=5)
-        
+        button_frame.grid(row=4, column=0, sticky='ew', padx=5, pady=5)
+
         ttk.Button(
             button_frame,
             text="Add to Cart",
             command=self._add_veggie_to_cart
         ).pack(side=tk.LEFT, padx=5)
-        
+
         ttk.Button(
             button_frame,
             text="Clear Cart",
             command=self._clear_cart
         ).pack(side=tk.LEFT, padx=5)
-        
-        ttk.Button(
-            button_frame,
-            text="Check Out Order",
-            command=self._check_out_order
-        ).pack(side=tk.LEFT, padx=5)
-        
-        # 填充剩余空间 - row 4
-        spacer = ttk.Frame(main_container)
-        spacer.grid(row=4, column=0, sticky='nsew', pady=5)
-        main_container.grid_rowconfigure(4, weight=1)
-        
+
+        # ttk.Button(
+        #     button_frame,
+        #     text="Check Out Order",
+        #     command=self._check_out_order
+        # ).pack(side=tk.LEFT, padx=5)
+
+        # # 填充剩余空间 - row 5
+        # spacer = ttk.Frame(main_container)
+        # spacer.grid(row=5, column=0, sticky='nsew', pady=5)
+        # main_container.grid_rowconfigure(5, weight=1)
+
         # 更新商品列表
         self._update_veggie_products()
 
@@ -190,48 +192,88 @@ class Product:
         # Quantity选择区域 - row 2
         quantity_frame = ttk.Frame(main_container)
         quantity_frame.grid(row=2, column=0, sticky='ew', padx=5, pady=5)
-        
-        ttk.Label(quantity_frame, text="Quantity:").pack(side=tk.LEFT, padx=5)
+
+        # Quantity标签和Spinbox
+        ttk.Label(quantity_frame, text="Quantity:").grid(row=0, column=0, padx=5, pady=5, sticky="w")
         
         # 使用自定义的ValidatedSpinbox
         self.box_quantity_spinbox = ValidatedSpinbox(quantity_frame)
-        self.box_quantity_spinbox.pack(side=tk.LEFT, padx=5)
-        # 设置默认值为 1
-        self.box_quantity_spinbox.set('1')
-        
-        
-        # 按钮区域 - row 3
-        button_frame = ttk.Frame(main_container)
-        button_frame.grid(row=3, column=0, sticky='ew', padx=5, pady=5)
-        
+        self.box_quantity_spinbox.grid(row=0, column=1, padx=5, pady=5, sticky="w")
+        self.box_quantity_spinbox.set('1')  # 设置默认值为 1
+
+        # Add to Cart 和 Clear Cart 按钮
         ttk.Button(
-            button_frame,
+            quantity_frame,
             text="Add to Cart",
             command=self._add_to_cart_b
-        ).pack(side=tk.LEFT, padx=5)
-        
+        ).grid(row=0, column=2, padx=5)
+
         ttk.Button(
-            button_frame,
+            quantity_frame,
             text="Clear Cart",
             command=self._clear_cart
-        ).pack(side=tk.LEFT, padx=5)
+        ).grid(row=0, column=3, padx=5)
         
-        ttk.Button(
-            button_frame,
-            text="Check Out Order",
-            command=self._check_out_order
-        ).pack(side=tk.LEFT, padx=5)
         
         # 填充剩余空间 - row 4
-        spacer = ttk.Frame(main_container)
-        spacer.grid(row=4, column=0, sticky='nsew', pady=5)
-        main_container.grid_rowconfigure(4, weight=1)
+        # spacer = ttk.Frame(main_container)
+        # spacer.grid(row=4, column=0, sticky='nsew', pady=5)
+        # main_container.grid_rowconfigure(4, weight=1)
         
         # 更新contents显示
         self._update_b_contents()
 
         # 设置quantity的model
         self.box_quantity_spinbox.model = 'int'
+
+    def _setup_process_order(self):
+        """设置Process Order区域，包含Delivery选项和Check Out按钮"""
+        # Process Order区域作为中间层
+        process_order_frame = ttk.LabelFrame(self.main_frame, text="Process Order")
+        process_order_frame.pack(padx=10, pady=5, fill=tk.X)  # 注意这里用X而不是BOTH
+
+        # 创建一个主容器来包含所有元素
+        main_container = ttk.Frame(process_order_frame)
+        main_container.pack(fill='x', padx=5, pady=5)
+
+        # Delivery选择区域
+        delivery_frame = ttk.Frame(main_container)
+        delivery_frame.pack(fill='x', anchor='w')  # 使用anchor='w'确保左对齐
+
+        # 添加自定义的 Delivery Option 标签
+        delivery_label = ttk.Label(delivery_frame, text="Delivery Option:")
+        delivery_label.grid(row=0, column=0, padx=5, sticky="w")
+
+        # Delivery Option Checkbutton（隐藏文本区域）
+        self.delivery_var = tk.BooleanVar(value=False)  # 默认值为 False
+        self.delivery_option_checkbutton = ttk.Checkbutton(
+            delivery_frame, 
+            variable=self.delivery_var,
+            width=0  # 隐藏文本区域
+        )
+        self.delivery_option_checkbutton.grid(row=0, column=1, padx=5, sticky="w")
+
+        # 提示标签
+        self.delivery_status_label = tk.Label(delivery_frame, text="", fg="red")
+        self.delivery_status_label.grid(row=0, column=2, padx=5, sticky="w")
+
+        # 如果用户不能选择配送，禁用 Checkbutton，并显示提示信息
+        if not self.user.can_delivery:
+            self.delivery_option_checkbutton.config(state=tk.DISABLED)
+            self.delivery_status_label.config(text=f"Delivery not available for your address: {self.user.cust_address} km")
+        else:
+            self.delivery_status_label.grid_forget()
+        
+        # 创建按钮容器并左对齐
+        button_frame = ttk.Frame(main_container)
+        button_frame.pack(fill='x', pady=5, anchor='w')  # 使用anchor='w'确保左对齐
+        
+        # Check Out Order 按钮放在左侧
+        ttk.Button(
+            button_frame,
+            text="Check Out Order",
+            command=self._check_out_order
+        ).pack(side='left', padx=5)  # 使用side='left'确保按钮左对齐
 
     def _setup_cart(self):
         """设置购物车界面"""
@@ -512,12 +554,3 @@ class Product:
     def get_main_frame(self):
         """返回主Frame以便集成到其他界面"""
         return self.main_frame
-
-
-# if __name__ == "__main__":
-#     root = tk.Tk()
-#     root.title("FHV Company")  # 设置窗口标题
-#     root.geometry("800x600")  # 设置窗口大小
-#     product_app = Product()  # 创建 Product 实例
-#     product_app.main_frame.pack(fill=tk.BOTH, expand=True)  # 显示主框架
-#     root.mainloop()  # 进入主循环

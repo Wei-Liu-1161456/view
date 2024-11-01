@@ -174,7 +174,7 @@ class CustomerHome:
         """创建订单frame"""
         try:
             product_frame = ttk.Frame(self.display_frame)
-            product_system = Product(product_frame, self.controller)
+            product_system = Product(product_frame, self.controller, self.customer)
             product_system.get_main_frame().pack(fill=tk.BOTH, expand=True)
             return product_frame
         except Exception as e:
