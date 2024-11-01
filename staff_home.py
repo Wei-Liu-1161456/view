@@ -1,15 +1,19 @@
-# staff_home.py
-
 import tkinter as tk
 from tkinter import ttk, messagebox
 
 class StaffHome:
     def __init__(self, root, staff):
         self.root = root
-        # 禁止调整窗口大小
         self.root.resizable(False, False)  # 禁止水平和垂直方向的缩放
         self.staff = staff
         self.root.title("FHV Company - Staff Home")
+
+        # 初始化content frames字典，用于缓存不同功能区的frame
+        self.content_frames = {}
+        
+        # 初始化当前显示的frame
+        self.current_frame = None
+
         self.setup_window()
         self.create_widgets()
 
@@ -27,8 +31,8 @@ class StaffHome:
         # 获取屏幕尺寸并计算窗口位置
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
-        center_x = int(screen_width/2 - window_width/2)
-        center_y = int(screen_height/2 - window_height/2)
+        center_x = int(screen_width / 2 - window_width / 2)
+        center_y = int(screen_height / 2 - window_height / 2)
         
         # 设置窗口位置和大小
         self.root.geometry(f'{window_width}x{window_height}+{center_x}+{center_y}')
@@ -56,32 +60,23 @@ class StaffHome:
         self.function_frame = ttk.LabelFrame(self.left_frame, text="Function Area", padding="10")
         self.function_frame.pack(fill=tk.BOTH, expand=True)
         
-        # 创建按钮容器框架 - 移除expand=True
+        # 创建按钮容器框架
         self.buttons_frame = ttk.Frame(self.function_frame)
         self.buttons_frame.pack(fill=tk.X)
-        
-        # 添加功能按钮组
-        # 产品和订单管理组
-        group_frame1 = self.create_button_group("Products & Orders", [
-            ("All Products", self.view_all_products),
-            ("Current Orders", self.view_current_orders),
-            ("Previous Orders", self.view_previous_orders)
-        ])
-        group_frame1.pack(fill=tk.X, pady=(0, 5))
-        
-        # 客户管理
-        group_frame2 = self.create_button_group("Customer Management", [
-            ("All Customers", self.view_all_customers)
-        ])
-        group_frame2.pack(fill=tk.X, pady=5)
-        
-        # Sales Report
-        group_frame3 = self.create_button_group("Sales Reports", [
-            ("Sales Report", self.view_sales_report),
-            ("Popular Items", self.view_popular_items)
-        ])
 
-        group_frame3.pack(fill=tk.X, pady=5)
+        # 功能按钮配置
+        self.function_buttons = {
+            "All Products": self.view_all_products,
+            "Current Orders": self.view_current_orders,
+            "Previous Orders": self.view_previous_orders,
+            "All Customers": self.view_all_customers,
+            "Sales Report": self.view_sales_report,
+            "Popular Items": self.view_popular_items
+        }
+
+        for text, command in self.function_buttons.items():
+            button = ttk.Button(self.buttons_frame, text=text, command=command)
+            button.pack(fill=tk.X, pady=2, padx=5)
 
         # 使用Frame包装分隔线和退出按钮，将它们推到底部
         bottom_frame = ttk.Frame(self.function_frame)
@@ -99,30 +94,9 @@ class StaffHome:
         # 创建Display Area区域
         self.display_frame = ttk.LabelFrame(self.right_frame, text="Display Area", padding="10")
         self.display_frame.pack(fill=tk.BOTH, expand=True)
-        
-        # 添加欢迎消息
-        ttk.Label(
-            self.display_frame, 
-            text=f"Welcome, {self.staff.first_name}!",
-            font=('Helvetica', 14, 'bold')
-        ).pack(pady=20)
-        
-        ttk.Label(
-            self.display_frame,
-            text="Please select a function from the left menu to begin.",
-            font=('Helvetica', 12)
-        ).pack()
 
-    def create_button_group(self, group_name, buttons):
-        """创建按钮组"""
-        group_frame = ttk.LabelFrame(self.buttons_frame, text=group_name, padding="5")
-        
-        for text, command in buttons:
-            ttk.Button(group_frame, text=text, command=command).pack(
-                fill=tk.X, pady=2, padx=5
-            )
-            
-        return group_frame
+        # 初始显示欢迎消息
+        self.update_display_area("Welcome", f"Welcome, {self.staff.first_name}!")
 
     def update_display_area(self, title, content=""):
         """更新显示区域的内容"""
@@ -144,33 +118,95 @@ class StaffHome:
                 font=('Helvetica', 12)
             ).pack(pady=10)
 
+    def show_frame(self, frame_id, title, create_func=None):
+        """通用frame显示方法"""
+        try:
+            # 隐藏当前frame
+            if self.current_frame:
+                self.current_frame.pack_forget()
+            
+            # 更新显示区域标题
+            self.update_display_area(title)
+            
+            # 如果frame不存在且提供了创建函数，则创建
+            if frame_id not in self.content_frames and create_func:
+                frame = create_func()
+                if frame:  # 确保frame创建成功
+                    self.content_frames[frame_id] = frame
+            
+            # 显示对应的frame
+            if frame_id in self.content_frames:
+                self.current_frame = self.content_frames[frame_id]
+                # 显示内容frame
+                self.current_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+            else:
+                # 如果frame创建失败，显示错误提示
+                error_frame = ttk.Frame(self.display_frame)
+                ttk.Label(
+                    error_frame,
+                    text="Failed to load the content. Please try again.",
+                    foreground='red'
+                ).pack(pady=10)
+                error_frame.pack(fill=tk.BOTH, expand=True)
+                self.current_frame = error_frame
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Error showing frame: {str(e)}")
+
     # 产品和订单管理功能
     def view_all_products(self):
-        self.update_display_area("All Products", "Displaying all products in the system...")
-        # 实现显示所有产品的功能
+        self.show_frame('all_products', "All Products", self.create_all_products_frame)
 
     def view_current_orders(self):
-        self.update_display_area("Current Orders", "Displaying all current orders...")
-        # 实现显示当前订单的功能
+        self.show_frame('current_orders', "Current Orders", self.create_current_orders_frame)
 
     def view_previous_orders(self):
-        self.update_display_area("Previous Orders", "Displaying all previous orders...")
-        # 实现显示历史订单的功能
+        self.show_frame('previous_orders', "Previous Orders", self.create_previous_orders_frame)
 
-    # 客户管理功能
     def view_all_customers(self):
-        self.update_display_area("All Customers", "Displaying list of all customers...")
-        # 实现显示所有客户的功能
-    
+        self.show_frame('all_customers', "All Customers", self.create_all_customers_frame)
 
-    # 销售报告功能
-    def view_sales_report(self):  
-        self.update_display_area("Sales Report", "Displaying sales report...")
-        # 实现显示销售报告的功能
+    def view_sales_report(self):
+        self.show_frame('sales_report', "Sales Report", self.create_sales_report_frame)
 
     def view_popular_items(self):
-        self.update_display_area("Popular Items", "Displaying most popular items...")
-        # 实现显示热门商品的功能
+        self.show_frame('popular_items', "Popular Items", self.create_popular_items_frame)
+
+    def create_all_products_frame(self):
+        """创建所有产品的frame"""
+        frame = ttk.Frame(self.display_frame)
+        ttk.Label(frame, text="Displaying all products in the system...").pack(pady=10)
+        return frame
+
+    def create_current_orders_frame(self):
+        """创建当前订单的frame"""
+        frame = ttk.Frame(self.display_frame)
+        ttk.Label(frame, text="Displaying all current orders...").pack(pady=10)
+        return frame
+
+    def create_previous_orders_frame(self):
+        """创建历史订单的frame"""
+        frame = ttk.Frame(self.display_frame)
+        ttk.Label(frame, text="Displaying all previous orders...").pack(pady=10)
+        return frame
+
+    def create_all_customers_frame(self):
+        """创建所有客户的frame"""
+        frame = ttk.Frame(self.display_frame)
+        ttk.Label(frame, text="Displaying list of all customers...").pack(pady=10)
+        return frame
+
+    def create_sales_report_frame(self):
+        """创建销售报告的frame"""
+        frame = ttk.Frame(self.display_frame)
+        ttk.Label(frame, text="Displaying sales report...").pack(pady=10)
+        return frame
+
+    def create_popular_items_frame(self):
+        """创建热门商品的frame"""
+        frame = ttk.Frame(self.display_frame)
+        ttk.Label(frame, text="Displaying most popular items...").pack(pady=10)
+        return frame
 
     def on_logout(self):
         """处理退出登录"""

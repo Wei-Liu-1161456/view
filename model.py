@@ -228,9 +228,20 @@ class Customer(Person):
         # 新增：根据地址确定是否支持配送
         try:
             distance = int(''.join(filter(str.isdigit, self.cust_address)))
+            print(distance)
             self.can_delivery = distance <= DELIVERY_RADIUS_KM
         except ValueError:
             self.can_delivery = False
+
+    def __str__(self) -> str:
+        return (f"Customer ID: {self.cust_id}\n"
+                f"Name: {self.first_name} {self.last_name}\n"
+                f"Username: {self.username}\n"
+                f"Address: {self.cust_address}\n"
+                f"Balance: ${self.cust_balance:.2f}\n"
+                f"Maximum Owing: ${self.max_owing:.2f}\n"
+                f"Delivery Available: {'Yes' if self.can_delivery else 'No'}\n")
+
 
     def can_place_order(self, order_amount: Decimal) -> bool:
         """Check if customer can place order based on total amount and max owing limit"""
@@ -397,7 +408,7 @@ class CorporateCustomer(Customer):
                 f"Username: {self.username}\n"
                 f"Address: {self.cust_address}\n"
                 f"Balance: {self.cust_balance}\n"
-                f"Max Owing: {self.max_owing}\n"
+                f"Credit Limit: {self.max_owing}\n"
                 f"Discount Rate: {self.discount_rate:.2%}")  # Display discount rate as a percentage
     
     # place order: this method is needed to be override, because the corporate customer has a discount rate
