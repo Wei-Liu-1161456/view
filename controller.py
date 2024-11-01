@@ -1,17 +1,38 @@
 # from model import 
 from typing import Dict, List
 from decimal import Decimal
-# from view.login import Login
+from login import Login
 import os
 from decimal import ROUND_HALF_UP
+import pickle
 
 # The Company class is the controller class that manages the data and the business logic of the application.
 class Company:
     def __init__(self):
         '''Initializes the Company class'''
-        # 初始化商品数据
+
+        # 初始化商品数据 提供给product.py中的Product类使用用来初始化商品列表
+        # 初始化蔬菜列表
+        self.all_veggies_list = []  # 所有蔬菜列表(供box contents使用)
+        self.veggies_weight_list = []  # weight类蔬菜列表
+        self.veggies_unit_list = []    # unit类蔬菜列表
+        self.veggies_pack_list = []    # pack类蔬菜列表
         self._parse_veggies()
+        # 初始化盒子配置
+        self.smallbox_default_dict = {'price': Decimal('0'), 'contents': []}
+        self.mediumbox_default_dict = {'price': Decimal('0'), 'contents': []}
+        self.largebox_default_dict = {'price': Decimal('0'), 'contents': []}
         self._parse_premadeboxes()
+
+        # Load customer and staff data
+        self.private_customers = self.load_data("data/private_customers.pkl")
+        self.corporate_customers = self.load_data("data/corporate_customers.pkl")
+        self.staff_members = self.load_data("data/staffs.pkl")  # Load staffs data
+
+    # 从pickle文件中load数据 staff.pkl, private_customers.pkl, corporate_customers.pkl
+    def load_data(self, filename):
+        with open(filename, 'rb') as file:
+            return pickle.load(file)
 
     
     # 从文件中加载产品数据
@@ -24,11 +45,7 @@ class Company:
             with open('static/veggies.txt', 'r') as f:
                 lines = f.readlines()
             
-            # 初始化蔬菜列表
-            self.all_veggies_list = []  # 所有蔬菜列表(供box contents使用)
-            self.veggies_weight_list = []  # weight类蔬菜列表
-            self.veggies_unit_list = []    # unit类蔬菜列表
-            self.veggies_pack_list = []    # pack类蔬菜列表
+            
             
             # 解析数据
             current_type = None
@@ -64,12 +81,7 @@ class Company:
             print(f"File Error: {str(e)}")
             raise
                         
-        # except FileNotFoundError as e:
-        #     messagebox.showerror("File Error", str(e))
-        #     raise
-        # except Exception as e:
-        #     messagebox.showerror("Error", f"Error parsing veggies.txt: {str(e)}")
-        #     raise
+    
     
     def _parse_premadeboxes(self):
         """解析premadeboxes.txt获取盒子配置"""
@@ -80,10 +92,7 @@ class Company:
             with open('static/premadeboxes.txt', 'r') as f:
                 lines = f.readlines()
             
-            # 初始化盒子配置
-            self.smallbox_default_dict = {'price': Decimal('0'), 'contents': []}
-            self.mediumbox_default_dict = {'price': Decimal('0'), 'contents': []}
-            self.largebox_default_dict = {'price': Decimal('0'), 'contents': []}
+            
             
             current_size = None
             for line in lines:
@@ -132,9 +141,8 @@ class Company:
                     self.user = corporate_customer
 
 
-# Create Tkinter window
-if __name__ == "__main__":
-    company = Company()
+
+
     
     # login = Login(company)
     # login.run()

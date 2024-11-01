@@ -11,25 +11,26 @@ from staff_home import StaffHome
 # from controller import Company
 
 class Login:
-    def __init__(self, controller = None):
+    def __init__(self, controller):
+        # 拿到controller中的数据
+        self.controller = controller
+        self.private_customers = self.controller.private_customers
+        self.corporate_customers = self.controller.corporate_customers
+        self.staff_members = self.controller.staff_members
+
         self.root = tk.Tk()
         self.root.title("FHV Company - Login")
         # 禁止调整窗口大小
         self.root.resizable(False, False)  # 禁止水平和垂直方向的缩放
         
-        # Load customer and staff data
-        self.private_customers = self.load_data("data/private_customers.pkl")
-        self.corporate_customers = self.load_data("data/corporate_customers.pkl")
-        # self.staff_member = self.load_data("data/staffs.pkl")  # Load staff data
-        # Load customer and staff data
-        self.staff_members = self.load_data("data/staffs.pkl")  # Load staffs data
+        self.private_customers = controller.private_customers
+        self.corporate_customers = controller.corporate_customers
+        self.staff_members = controller.staff_members
 
         # Create user interface
         self.create_widgets()
 
-    def load_data(self, filename):
-        with open(filename, 'rb') as file:
-            return pickle.load(file)
+    
 
     # Get user information
     def get_user_info(self):
@@ -93,7 +94,7 @@ class Login:
             if user_type == "staff":
                 StaffHome(new_window, user)
             else:
-                CustomerHome(new_window, user)
+                CustomerHome(new_window, user, self.controller)
         else:
             messagebox.showerror("Login Failed", 
                                "Invalid username or password.")

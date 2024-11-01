@@ -3,9 +3,13 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from product import Product
+# from controller import Company
 
 class CustomerHome:
-    def __init__(self, root, customer):
+    def __init__(self, root, customer, controller):
+        # 拿到controller中的数据
+        self.controller = controller
+
         self.root = root
         self.root.resizable(False, False)
         self.customer = customer
@@ -170,7 +174,7 @@ class CustomerHome:
         """创建订单frame"""
         try:
             product_frame = ttk.Frame(self.display_frame)
-            product_system = Product(product_frame)
+            product_system = Product(product_frame, self.controller)
             product_system.get_main_frame().pack(fill=tk.BOTH, expand=True)
             return product_frame
         except Exception as e:

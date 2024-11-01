@@ -4,49 +4,60 @@ from decimal import Decimal, ROUND_HALF_UP
 import os
 from my_widgts import ValidatedSpinbox
 from decimal import InvalidOperation
+# from controller import Company  
 
 
 class Product:
-    def __init__(self, parent):
+    def __init__(self, parent, controller):
         """
         初始化Product类
         parent: 父级窗口部件
         """
-        try:
-            # 初始化固定值
-            self.small_size = 3
-            self.medium_size = 4
-            self.large_size = 5
+        # try:
+        # 拿到controller中的数据
+        self.controller = controller
+
+        # 初始化商品数据
+        # 初始化蔬菜列表
+        self.all_veggies_list = self.controller.all_veggies_list  # 所有蔬菜列表(供box contents使用)
+        self.veggies_weight_list = self.controller.veggies_weight_list  # weight类蔬菜列表
+        self.veggies_unit_list = self.controller.veggies_unit_list    # unit类蔬菜列表
+        self.veggies_pack_list = self.controller.veggies_pack_list    # pack类蔬菜列表
+        # 初始化盒子配置
+        self.smallbox_default_dict = {'price': Decimal('0'), 'contents': []}
+        self.mediumbox_default_dict = {'price': Decimal('0'), 'contents': []}
+        self.largebox_default_dict = {'price': Decimal('0'), 'contents': []}
+
+        # 初始化固定值
+        self.small_size = 3
+        self.medium_size = 4
+        self.large_size = 5
+        
+        # 创建主Frame
+        self.main_frame = ttk.Frame(parent)
+        
+        # 创建notebook
+        self.notebook = ttk.Notebook(self.main_frame)
+        self.notebook.pack(padx=10, pady=5, fill=tk.BOTH, expand=True)
+        
+        # 创建A类和B类的frame
+        self.a_frame = ttk.Frame(self.notebook)
+        self.b_frame = ttk.Frame(self.notebook)
+        self.notebook.add(self.a_frame, text='Veggies')
+        self.notebook.add(self.b_frame, text='Premade Boxes')
+        
+        # 初始化变量
+        self.a_type_var = tk.StringVar(value='weight/kg')
+        self.b_size_var = tk.StringVar(value='small')
+        
+        # 初始化界面
+        self._setup_a_products()
+        self._setup_b_products()
+        self._setup_cart()
             
-            # 初始化商品数据
-            self._parse_veggies()
-            self._parse_premadeboxes()
-            
-            # 创建主Frame
-            self.main_frame = ttk.Frame(parent)
-            
-            # 创建notebook
-            self.notebook = ttk.Notebook(self.main_frame)
-            self.notebook.pack(padx=10, pady=5, fill=tk.BOTH, expand=True)
-            
-            # 创建A类和B类的frame
-            self.a_frame = ttk.Frame(self.notebook)
-            self.b_frame = ttk.Frame(self.notebook)
-            self.notebook.add(self.a_frame, text='Veggies')
-            self.notebook.add(self.b_frame, text='Premade Boxes')
-            
-            # 初始化变量
-            self.a_type_var = tk.StringVar(value='weight/kg')
-            self.b_size_var = tk.StringVar(value='small')
-            
-            # 初始化界面
-            self._setup_a_products()
-            self._setup_b_products()
-            self._setup_cart()
-            
-        except Exception as e:
-            messagebox.showerror("Initialization Error", f"Error initializing product system: {str(e)}")
-            raise
+        # except Exception as e:
+        #     messagebox.showerror("Initialization Error", f"Error initializing product system: {str(e)}")
+        #     raise
     
     # def _parse_veggies(self):
     #     """解析veggies.txt获取所有蔬菜选项"""
@@ -100,49 +111,49 @@ class Product:
     #         messagebox.showerror("Error", f"Error parsing veggies.txt: {str(e)}")
     #         raise
     
-    def _parse_premadeboxes(self):
-        """解析premadeboxes.txt获取盒子配置"""
-        try:
-            if not os.path.exists('static/premadeboxes.txt'):
-                raise FileNotFoundError("static/premadeboxes.txt file not found")
+    # # def _parse_premadeboxes(self):
+    #     """解析premadeboxes.txt获取盒子配置"""
+    #     try:
+    #         if not os.path.exists('static/premadeboxes.txt'):
+    #             raise FileNotFoundError("static/premadeboxes.txt file not found")
                 
-            with open('static/premadeboxes.txt', 'r') as f:
-                lines = f.readlines()
+    #         with open('static/premadeboxes.txt', 'r') as f:
+    #             lines = f.readlines()
             
-            # 初始化盒子配置
-            self.smallbox_default_dict = {'price': Decimal('0'), 'contents': []}
-            self.mediumbox_default_dict = {'price': Decimal('0'), 'contents': []}
-            self.largebox_default_dict = {'price': Decimal('0'), 'contents': []}
+    #         # 初始化盒子配置
+    #         self.smallbox_default_dict = {'price': Decimal('0'), 'contents': []}
+    #         self.mediumbox_default_dict = {'price': Decimal('0'), 'contents': []}
+    #         self.largebox_default_dict = {'price': Decimal('0'), 'contents': []}
             
-            current_size = None
-            for line in lines:
-                line = line.strip()
-                if not line:  # 跳过空行
-                    continue
+    #         current_size = None
+    #         for line in lines:
+    #             line = line.strip()
+    #             if not line:  # 跳过空行
+    #                 continue
                     
-                if line.startswith('['):
-                    current_size = line[1:-1].lower()
-                elif '=' in line and current_size:
-                    key, value = line.split('=')
-                    key = key.lower()
+    #             if line.startswith('['):
+    #                 current_size = line[1:-1].lower()
+    #             elif '=' in line and current_size:
+    #                 key, value = line.split('=')
+    #                 key = key.lower()
                     
-                    if key == 'price':
-                        # 保存价格
-                        box_dict = getattr(self, f"{current_size}box_default_dict")
-                        box_dict['price'] = Decimal(value.strip()).quantize(
-                            Decimal('0.01'), rounding=ROUND_HALF_UP
-                        )
-                    elif key.startswith('item'):
-                        # 保存内容项
-                        box_dict = getattr(self, f"{current_size}box_default_dict")
-                        box_dict['contents'].append(value.strip())
+    #                 if key == 'price':
+    #                     # 保存价格
+    #                     box_dict = getattr(self, f"{current_size}box_default_dict")
+    #                     box_dict['price'] = Decimal(value.strip()).quantize(
+    #                         Decimal('0.01'), rounding=ROUND_HALF_UP
+    #                     )
+    #                 elif key.startswith('item'):
+    #                     # 保存内容项
+    #                     box_dict = getattr(self, f"{current_size}box_default_dict")
+    #                     box_dict['contents'].append(value.strip())
                         
-        except FileNotFoundError as e:
-            messagebox.showerror("File Error", str(e))
-            raise
-        except Exception as e:
-            messagebox.showerror("Error", f"Error parsing premadeboxes.txt: {str(e)}")
-            raise
+    #     except FileNotFoundError as e:
+    #         messagebox.showerror("File Error", str(e))
+    #         raise
+    #     except Exception as e:
+    #         messagebox.showerror("Error", f"Error parsing premadeboxes.txt: {str(e)}")
+    #         raise
 
     def _setup_a_products(self):
         """设置A类商品(Veggies)界面"""
@@ -418,18 +429,29 @@ class Product:
         # 遍历所有items
         for i, (label, combo) in enumerate(self.item_widgets):
             if i < num_items:
-                # 显示并设置默认值
+                # 显示相应的控件
                 label.grid()
                 combo.grid()
                 
-                # 设置默认值（从box_dict中获取）
-                default_content = box_dict['contents'][i]
-                for option in self.all_veggies_list:
-                    if default_content.split(' x ')[0] in option:
-                        combo.set(option)
-                        break
+                # 安全地获取默认内容
+                if i < len(box_dict['contents']):
+                    default_content = box_dict['contents'][i]
+                    # 寻找匹配的选项
+                    found_match = False
+                    for option in self.all_veggies_list:
+                        if default_content.split(' x ')[0] in option:
+                            combo.set(option)
+                            found_match = True
+                            break
+                    # 如果没找到匹配项，设置为第一个选项（如果有的话）
+                    if not found_match and self.all_veggies_list:
+                        combo.set(self.all_veggies_list[0])
+                else:
+                    # 如果没有默认内容，设置为第一个选项（如果有的话）
+                    if self.all_veggies_list:
+                        combo.set(self.all_veggies_list[0])
             else:
-                # 隐藏
+                # 隐藏多余的控件
                 label.grid_remove()
                 combo.grid_remove()
 
