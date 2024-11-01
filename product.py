@@ -24,9 +24,9 @@ class Product:
         self.veggies_unit_list = self.controller.veggies_unit_list    # unit类蔬菜列表
         self.veggies_pack_list = self.controller.veggies_pack_list    # pack类蔬菜列表
         # 初始化盒子配置
-        self.smallbox_default_dict = {'price': Decimal('0'), 'contents': []}
-        self.mediumbox_default_dict = {'price': Decimal('0'), 'contents': []}
-        self.largebox_default_dict = {'price': Decimal('0'), 'contents': []}
+        self.smallbox_default_dict = self.controller.smallbox_default_dict
+        self.mediumbox_default_dict = self.controller.mediumbox_default_dict
+        self.largebox_default_dict = self.controller.largebox_default_dict
 
         # 初始化固定值
         self.small_size = 3
@@ -429,29 +429,18 @@ class Product:
         # 遍历所有items
         for i, (label, combo) in enumerate(self.item_widgets):
             if i < num_items:
-                # 显示相应的控件
+                # 显示并设置默认值
                 label.grid()
                 combo.grid()
                 
-                # 安全地获取默认内容
-                if i < len(box_dict['contents']):
-                    default_content = box_dict['contents'][i]
-                    # 寻找匹配的选项
-                    found_match = False
-                    for option in self.all_veggies_list:
-                        if default_content.split(' x ')[0] in option:
-                            combo.set(option)
-                            found_match = True
-                            break
-                    # 如果没找到匹配项，设置为第一个选项（如果有的话）
-                    if not found_match and self.all_veggies_list:
-                        combo.set(self.all_veggies_list[0])
-                else:
-                    # 如果没有默认内容，设置为第一个选项（如果有的话）
-                    if self.all_veggies_list:
-                        combo.set(self.all_veggies_list[0])
+                # 设置默认值（从box_dict中获取）
+                default_content = box_dict['contents'][i]
+                for option in self.all_veggies_list:
+                    if default_content.split(' x ')[0] in option:
+                        combo.set(option)
+                        break
             else:
-                # 隐藏多余的控件
+                # 隐藏
                 label.grid_remove()
                 combo.grid_remove()
 
