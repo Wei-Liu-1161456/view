@@ -128,17 +128,6 @@ class Product:
             command=self._clear_cart
         ).pack(side=tk.LEFT, padx=5)
 
-        # ttk.Button(
-        #     button_frame,
-        #     text="Check Out Order",
-        #     command=self._check_out_order
-        # ).pack(side=tk.LEFT, padx=5)
-
-        # # 填充剩余空间 - row 5
-        # spacer = ttk.Frame(main_container)
-        # spacer.grid(row=5, column=0, sticky='nsew', pady=5)
-        # main_container.grid_rowconfigure(5, weight=1)
-
         # 更新商品列表
         self._update_veggie_products()
 
@@ -227,7 +216,7 @@ class Product:
         self.box_quantity_spinbox.model = 'int'
 
     def _setup_process_order(self):
-        """设置Process Order区域，包含Delivery选项和Check Out按钮"""
+        """设置Process Order区域, 包含Delivery选项和Check Out按钮"""
         # Process Order区域作为中间层
         process_order_frame = ttk.LabelFrame(self.main_frame, text="Process Order")
         process_order_frame.pack(padx=10, pady=5, fill=tk.X)  # 注意这里用X而不是BOTH
@@ -254,15 +243,16 @@ class Product:
         self.delivery_option_checkbutton.grid(row=0, column=1, padx=5, sticky="w")
 
         # 提示标签
-        self.delivery_status_label = tk.Label(delivery_frame, text="", fg="red")
+        self.delivery_status_label = tk.Label(delivery_frame, text="")
         self.delivery_status_label.grid(row=0, column=2, padx=5, sticky="w")
 
         # 如果用户不能选择配送，禁用 Checkbutton，并显示提示信息
         if not self.user.can_delivery:
             self.delivery_option_checkbutton.config(state=tk.DISABLED)
-            self.delivery_status_label.config(text=f"Delivery not available for your address: {self.user.cust_address} km")
+            self.delivery_status_label.config(text=f"Sorry, Delivery not available for your address: {self.user.cust_address} km")
         else:
-            self.delivery_status_label.grid_forget()
+            self.delivery_status_label.config(text=f"Delivery available for your address: {self.user.cust_address} km")
+            # self.delivery_status_label.grid_forget()
         
         # 创建按钮容器并左对齐
         button_frame = ttk.Frame(main_container)

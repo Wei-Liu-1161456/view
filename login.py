@@ -53,35 +53,13 @@ class Login:
 
         return user_info
 
-    # Login verification function
-    def verify_login(self, username, password):
-        """验证登录并返回用户对象和类型"""
-        # 检查staffs
-        for staff in self.staff_members.values():  # Changed to iterate through staffs
-            if (staff.username == username and 
-                staff.password == password):
-                return staff, "staff"
-
-        # 检查private customers
-        for customer in self.private_customers.values():
-            if (customer.username == username and 
-                customer.password == password):
-                return customer, "customer"
-        
-        # 检查corporate customers
-        for customer in self.corporate_customers.values():
-            if (customer.username == username and 
-                customer.password == password):
-                return customer, "customer"
-        
-        return None, None
 
     def login(self):
         username = self.entry_username.get()
         password = self.entry_password.get()
         
         # 验证登录信息
-        user, user_type = self.verify_login(username, password)
+        user, user_type = self.controller.user_login(username, password)
         
         if user:
             # 隐藏登录窗口
@@ -92,7 +70,7 @@ class Login:
             
             # 根据用户类型创建相应的主界面
             if user_type == "staff":
-                StaffHome(new_window, user)
+                StaffHome(new_window, user, self.controller)
             else:
                 CustomerHome(new_window, user, self.controller)
         else:
@@ -164,10 +142,3 @@ class Login:
         hint_text.config(state='disabled')  # Set to read-only
     def run(self):
         self.root.mainloop()
-
-# Create Tkinter window
-if __name__ == "__main__":
-    # root = tk.Tk()
-
-    app = Login()  # Create Login instance
-    app.run()

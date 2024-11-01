@@ -55,20 +55,37 @@ class Staff(Person):
             current_orders = [order for order in orders.values() 
                             if order.order_status == OrderStatus.PENDING]
             
-            print("\n=== Current Orders ===")
-            for order in current_orders:
-                print(f"\nOrder Number: {order.order_number}")
-                print(f"Customer: {order.order_customer.first_name} {order.order_customer.last_name}")
-                print(f"Date: {order.order_date}")
-                self._print_order_items(order)
-                print(f"Subtotal: ${order.subtotal}")
-                print(f"Delivery Fee: ${order.delivery_fee}")
-                print(f"Total Amount: ${order.total_amount}")
+            # Build the output string
+            output = "=== Current Orders ===\n"
+            print(orders)
             
-            return current_orders
+            for order in current_orders:
+                output += f"\nOrder Number: {order.order_number}\n"
+                output += f"Customer: {order.order_customer.first_name} {order.order_customer.last_name}\n"
+                output += f"Date: {order.order_date}\n"
+                
+                # Convert _print_order_items to string format
+                items_str = self._get_order_items_string(order)
+                output += items_str
+                
+                output += f"Subtotal: ${order.subtotal}\n"
+                output += f"Delivery Fee: ${order.delivery_fee}\n"
+                output += f"Total Amount: ${order.total_amount}\n"
+                output += "-" * 40 + "\n"  # Add a separator line between orders
+            
+            return output, current_orders
         except Exception as e:
-            print(f"Error loading current orders: {e}")
-            return []
+            return f"Error loading orders: {str(e)}", []
+
+    def _get_order_items_string(self, order) -> str:
+        """Helper method to format order items as string"""
+        items_str = "Order Items:\n"
+        for item in order.order_items:
+            if hasattr(item, 'quantity'):
+                items_str += f"- {item.name} x {item.quantity}\n"
+            else:
+                items_str += f"- {item.name}\n"
+        return items_str
 
     def show_previous_orders(self) -> List['Order']:
         """Show all orders with 'fulfilled' status"""
@@ -268,26 +285,44 @@ class Customer(Person):
             return False
 
     def make_payment(self, *, payment_amount: Decimal, payment_date: date, 
-                payment_method: str, card_number: str = None, 
-                card_type: str = None, card_expiry_date: date = None,
-                bank_name: str = None) -> bool:
+                payment_method: str, **kwargs) -> bool:
         """Make payment using credit or debit card for corporate customer"""
         try:
+            # 添加支付方式验证
+            if payment_method not in ["credit", "debit", "account"]:
+                raise ValueError(f"Invalid payment method: {payment_method}")
+                
             # 创建支付记录
             if payment_method == "credit":
+                # 检查必需的信用卡参数是否都存在
+                required_credit_params = ['card_number', 'card_type', 
+                                        'card_expiry_date', 'cvv', 'card_holder']
+                for param in required_credit_params:
+                    if param not in kwargs:
+                        raise ValueError(f"Missing required credit card parameter: {param}")
+                        
                 payment = CreditCardPayment(
                     payment_amount=payment_amount,
                     payment_date=payment_date,
-                    card_number=card_number,
-                    card_type=card_type,
-                    card_expiry_date=card_expiry_date
+                    card_number=kwargs['card_number'],
+                    card_type=kwargs['card_type'],
+                    card_expiry_date=kwargs['card_expiry_date'],
+                    cvv=kwargs['cvv'],
+                    card_holder=kwargs['card_holder']
                 )
-            else:  # debit
+                
+            elif payment_method == "debit":
+                # 检查必需的借记卡参数是否都存在
+                required_debit_params = ['bank_name', 'debit_card_num']
+                for param in required_debit_params:
+                    if param not in kwargs:
+                        raise ValueError(f"Missing required debit card parameter: {param}")
+                        
                 payment = DebitCardPayment(
                     payment_amount=payment_amount,
                     payment_date=payment_date,
-                    bank_name=bank_name,
-                    debit_card_num=card_number
+                    bank_name=kwargs['bank_name'],
+                    debit_card_num=kwargs['debit_card_num']
                 )
 
             # 更新支付记录
@@ -303,7 +338,7 @@ class Customer(Person):
             return True
 
         except Exception as e:
-            print(f"Error processing corporate payment: {e}")
+            print(f"Error processing payment: {e}")
             return False
 
     def check_out_with_payment(self, items: List['Item'], delivery_method: DeliveryMethod,
@@ -688,6 +723,41 @@ class Order:
         self.sales_amount = Decimal('0.00')  # 实际销售额
         self.total_amount = Decimal('0.00')  # 总金额
 
+    def __str__(self) -> str:
+        """String representation of the order"""
+        # Initialize a list of lines with main order information
+        lines = [
+            f"Order Number: {self.order_number}",       # Order number
+            f"Customer: {self.order_customer}",         # Customer information
+            f"Order Date: {self.order_date}",           # Order date
+            f"Status: {self.order_status.value}",       # Order status
+            f"Delivery Method: {self.delivery_method.value}",  # Delivery method
+            f"Delivery Fee: ${self.delivery_fee:.2f}",  # Delivery fee (formatted to 2 decimal places)
+            "\nItems List:"                             # Items list heading
+        ]
+        
+        # If there are items in the order, format each item with indentation
+        if self.list_of_items:
+            for item in self.list_of_items:
+                # Split each item string into lines and add indentation for readability
+                item_lines = str(item).split('\n')
+                lines.extend(f"    {line}" for line in item_lines)
+        else:
+            # If no items, indicate that the list is empty
+            lines.append("    No items")
+        
+        # Add the financial summary at the end
+        lines.extend([
+            f"\nSubtotal: ${self.subtotal:.2f}",        # Subtotal amount
+            f"Discount: ${self.discount:.2f}",          # Discount amount
+            f"Sales Amount: ${self.sales_amount:.2f}",  # Sales amount after discount
+            f"Total Amount: ${self.total_amount:.2f}"   # Total amount due
+        ])
+        
+        # Join all lines with newlines for a well-formatted output
+        return '\n'.join(lines)
+        
+
     def set_items(self, items: List['Item']):
         """Set all order items at once and calculate amounts"""
         self.list_of_items = items
@@ -765,6 +835,9 @@ class Veggie(Item):
     def __init__(self, veg_name: str):
         super().__init__(veg_name)
         # self.veg_name = veg_name
+    
+    def __str__(self):
+        return f"Name: {self.item_name}\n"
 
 
 class WeightedVeggie(Veggie):
@@ -780,6 +853,10 @@ class WeightedVeggie(Veggie):
         self.total_price = self.weight * self.price_per_kilo
 
 
+    def __str__(self):
+        return super().__str__() + f"Weight: {self.weight} kg\nPrice per kilo: ${self.price_per_kilo}"
+
+
 class PackVeggie(Veggie):
     def __init__(self, veg_name: str, num_of_pack: int, price_per_pack: Decimal):
         super().__init__(veg_name)
@@ -792,6 +869,9 @@ class PackVeggie(Veggie):
     def calculate_total(self):
         self.total_price = self.num_of_pack * self.price_per_pack
 
+    def __str__(self):
+        return super().__str__() + f"Number of packs: {self.num_of_pack}\nPrice per pack: ${self.price_per_pack}"
+
 class UnitPriceVeggie(Veggie):
     def __init__(self, veg_name: str, quantity: int,price_per_unit: Decimal):
         super().__init__(veg_name)
@@ -803,6 +883,9 @@ class UnitPriceVeggie(Veggie):
     # 计算商品的总价
     def calculate_total(self):
         self.total_price = self.quantity * self.price_per_unit
+
+    def __str__(self):
+        return super().__str__() + f"Quantity: {self.quantity}\nPrice per unit: ${self.price_per_unit}"
 
 class PremadeBox(Item):
     def __init__(self, box_size: str, quantity:int, price: Decimal):
@@ -821,3 +904,9 @@ class PremadeBox(Item):
     # 计算商品的总价
     def calculate_total(self):
         self.total_price = self.quantity * self.price
+
+    def __str__(self):
+        return (f"Box Size: {self.item_name}\n"
+                f"Quantity: {self.quantity}\n"
+                f"Price: ${self.price}\n"
+                f"Contents: {', '.join([item.item_name for item in self.box_content])}")
