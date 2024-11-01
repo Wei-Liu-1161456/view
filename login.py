@@ -134,7 +134,7 @@ class Login:
         frame_username.pack(pady=5)
         ttk.Label(frame_username, text="Username:").pack(side=tk.LEFT)
         self.entry_username = ttk.Entry(frame_username)
-        self.entry_username.insert(0, "privateSS")  # Set default username
+        self.entry_username.insert(0, "staffJD")  # Set default username
         self.entry_username.pack(side=tk.LEFT, padx=5)
 
         # Password label and input (same line)

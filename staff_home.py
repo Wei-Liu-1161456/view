@@ -161,6 +161,7 @@ class StaffHome:
     def view_all_customers(self):
         self.update_display_area("All Customers", "Displaying list of all customers...")
         # 实现显示所有客户的功能
+    
 
     # 销售报告功能
     def view_sales_report(self):  

@@ -1,5 +1,5 @@
 from datetime import date
-from typing import List
+from typing import List, Dict, Tuple
 from decimal import Decimal
 from abc import ABC, abstractmethod
 import pickle
@@ -25,8 +25,15 @@ class Staff(Person):
         self.dept_name = dept_name
         self.date_joined = date_joined
         self.staff_ID = staff_ID
+    
+    def __str__(self):
+        return (f"Staff ID: {self.staff_ID}\n"
+                f"Name: {self.first_name} {self.last_name}\n"
+                f"Username: {self.username}\n"
+                f"Department: {self.dept_name}\n"
+                f"Date Joined: {self.date_joined}")
 
-    def _print_order_items(self, order: Order):
+    def _print_order_items(self, order: 'Order'):
         """Helper method to print order items with details"""
         print(f"Items:")
         for item in order.list_of_items:
@@ -38,7 +45,7 @@ class Staff(Person):
             else:
                 print(f"- {item.item_name} x {item.quantity} (${item.total_price})")
 
-    def show_current_orders(self) -> List[Order]:
+    def show_current_orders(self) -> List['Order']:
         """Show all orders with 'pending' status"""
         try:
             with open('data/orders.pkl', 'rb') as file:
@@ -61,7 +68,7 @@ class Staff(Person):
             print(f"Error loading current orders: {e}")
             return []
 
-    def show_previous_orders(self) -> List[Order]:
+    def show_previous_orders(self) -> List['Order']:
         """Show all orders with 'fulfilled' status"""
         try:
             with open('data/orders.pkl', 'rb') as file:
@@ -86,7 +93,7 @@ class Staff(Person):
             print(f"Error loading previous orders: {e}")
             return []
 
-    def show_all_customers(self) -> Dict[str, List[Customer]]:
+    def show_all_customers(self) -> Dict[str, List['Customer']]:
         """Show all customers (both private and corporate)"""
         try:
             # 加载私人客户
@@ -122,7 +129,7 @@ class Staff(Person):
             print(f"Error loading customers: {e}")
             return {'private': [], 'corporate': []}
 
-    def show_sales_report(self, start_date: date, end_date: date) -> Tuple[Decimal, List[Order]]:
+    def show_sales_report(self, start_date: date, end_date: date) -> Tuple[Decimal, List['Order']]:
         """Show sales report for a specific date range"""
         try:
             with open('data/orders.pkl', 'rb') as file:
@@ -295,7 +302,7 @@ class Customer(Person):
             print(f"Error processing payment: {e}")
             return False
 
-    def check_out_order(self, order: Order, payment_method: str, payment_details: dict = None) -> bool:
+    def check_out_order(self, order: 'Order', payment_method: str, payment_details: dict = None) -> bool:
         """Check out an order with specified payment method"""
         try:
             # 验证订单金额
@@ -337,7 +344,7 @@ class Customer(Person):
             print(f"Error during checkout: {e}")
             return False
 
-    def view_current_orders(self) -> List[Order]:
+    def view_current_orders(self) -> List['Order']:
         """View customer's current (pending) orders"""
         try:
             with open('data/orders.pkl', 'rb') as file:
@@ -355,7 +362,7 @@ class Customer(Person):
             print(f"Error viewing current orders: {e}")
             return []
 
-    def view_previous_orders(self) -> List[Order]:
+    def view_previous_orders(self) -> List['Order']:
         """View customer's fulfilled orders"""
         try:
             with open('data/orders.pkl', 'rb') as file:
@@ -466,7 +473,7 @@ class Order:
         self.sales_amount = Decimal('0.00')  # 实际销售额
         self.total_amount = Decimal('0.00')  # 总金额
 
-    def set_items(self, items: List[Item]):
+    def set_items(self, items: List['Item']):
         """Set all order items at once and calculate amounts"""
         self.list_of_items = items
         self.calculate_all_amounts()
