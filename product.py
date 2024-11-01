@@ -13,152 +13,58 @@ class Product:
         初始化Product类
         parent: 父级窗口部件
         """
-        # try:
-        # 拿到controller中的数据
-        self.controller = controller
+        try:
+            # 拿到controller中的数据
+            self.controller = controller
 
-        # 初始化商品数据
-        # 初始化蔬菜列表
-        self.all_veggies_list = self.controller.all_veggies_list  # 所有蔬菜列表(供box contents使用)
-        self.veggies_weight_list = self.controller.veggies_weight_list  # weight类蔬菜列表
-        self.veggies_unit_list = self.controller.veggies_unit_list    # unit类蔬菜列表
-        self.veggies_pack_list = self.controller.veggies_pack_list    # pack类蔬菜列表
-        # 初始化盒子配置
-        self.smallbox_default_dict = self.controller.smallbox_default_dict
-        self.mediumbox_default_dict = self.controller.mediumbox_default_dict
-        self.largebox_default_dict = self.controller.largebox_default_dict
+            # 初始化商品数据
+            # 初始化蔬菜列表
+            self.all_veggies_list = self.controller.all_veggies_list  # 所有蔬菜列表(供box contents使用)
+            self.veggies_weight_list = self.controller.veggies_weight_list  # weight类蔬菜列表
+            self.veggies_unit_list = self.controller.veggies_unit_list    # unit类蔬菜列表
+            self.veggies_pack_list = self.controller.veggies_pack_list    # pack类蔬菜列表
+            # 初始化盒子配置
+            self.smallbox_default_dict = self.controller.smallbox_default_dict
+            self.mediumbox_default_dict = self.controller.mediumbox_default_dict
+            self.largebox_default_dict = self.controller.largebox_default_dict
 
-        # 初始化固定值
-        self.small_size = 3
-        self.medium_size = 4
-        self.large_size = 5
-        
-        # 创建主Frame
-        self.main_frame = ttk.Frame(parent)
-        
-        # 创建notebook
-        self.notebook = ttk.Notebook(self.main_frame)
-        self.notebook.pack(padx=10, pady=5, fill=tk.BOTH, expand=True)
-        
-        # 创建A类和B类的frame
-        self.a_frame = ttk.Frame(self.notebook)
-        self.b_frame = ttk.Frame(self.notebook)
-        self.notebook.add(self.a_frame, text='Veggies')
-        self.notebook.add(self.b_frame, text='Premade Boxes')
-        
-        # 初始化变量
-        self.a_type_var = tk.StringVar(value='weight/kg')
-        self.b_size_var = tk.StringVar(value='small')
-        
-        # 初始化界面
-        self._setup_a_products()
-        self._setup_b_products()
-        self._setup_cart()
+            # 初始化固定值
+            self.small_size = 3
+            self.medium_size = 4
+            self.large_size = 5
             
-        # except Exception as e:
-        #     messagebox.showerror("Initialization Error", f"Error initializing product system: {str(e)}")
-        #     raise
+            # 创建主Frame
+            self.main_frame = ttk.Frame(parent)
+            
+            # 创建notebook
+            self.notebook = ttk.Notebook(self.main_frame)
+            self.notebook.pack(padx=10, pady=5, fill=tk.BOTH, expand=True)
+            
+            # 创建A类和B类的frame
+            self.veggie_frame = ttk.Frame(self.notebook)
+            self.box_frame = ttk.Frame(self.notebook)
+            self.notebook.add(self.veggie_frame, text='Veggies')
+            self.notebook.add(self.box_frame, text='Premade Boxes')
+            
+            # 初始化变量
+            self.veggie_type_var = tk.StringVar(value='weight/kg')
+            self.box_size_var = tk.StringVar(value='small')
+            
+            # 初始化界面
+            self._setup_veggie_products()
+            self._setup_box_products()
+            self._setup_cart()
+            
+        except Exception as e:
+            messagebox.showerror("Initialization Error", f"Error initializing product system: {str(e)}")
+            raise
     
-    # def _parse_veggies(self):
-    #     """解析veggies.txt获取所有蔬菜选项"""
-    #     try:
-    #         if not os.path.exists('static/veggies.txt'):
-    #             raise FileNotFoundError("static/veggies.txt file not found")
-                
-    #         with open('static/veggies.txt', 'r') as f:
-    #             lines = f.readlines()
-            
-    #         # 初始化蔬菜列表
-    #         self.all_veggies_list = []  # 所有蔬菜列表(供box contents使用)
-    #         self.veggies_weight_list = []  # weight类蔬菜列表
-    #         self.veggies_unit_list = []    # unit类蔬菜列表
-    #         self.veggies_pack_list = []    # pack类蔬菜列表
-            
-    #         # 解析数据
-    #         current_type = None
-    #         for line in lines:
-    #             line = line.strip()
-    #             if not line:  # 跳过空行
-    #                 continue
-                    
-    #             if line.startswith('['):
-    #                 current_type = line[1:-1]  # 移除[]
-    #             elif '=' in line and current_type:
-    #                 name, price = line.split('=')
-    #                 name = name.strip()
-    #                 price_decimal = Decimal(price.strip()).quantize(
-    #                     Decimal('0.01'), rounding=ROUND_HALF_UP
-    #                 )
-    #                 formatted_item = f"{name} - ${float(price_decimal):.2f}"
-                    
-    #                 # 添加到总列表
-    #                 self.all_veggies_list.append(formatted_item)
-                    
-    #                 # 添加到对应类型列表
-    #                 if 'weight/kg' in name:
-    #                     self.veggies_weight_list.append(formatted_item)
-    #                 elif 'unit' in name:
-    #                     self.veggies_unit_list.append(formatted_item)
-    #                 elif 'pack' in name:
-    #                     self.veggies_pack_list.append(formatted_item)
 
-    #         print(self.all_veggies_list)
-                        
-    #     except FileNotFoundError as e:
-    #         messagebox.showerror("File Error", str(e))
-    #         raise
-    #     except Exception as e:
-    #         messagebox.showerror("Error", f"Error parsing veggies.txt: {str(e)}")
-    #         raise
-    
-    # # def _parse_premadeboxes(self):
-    #     """解析premadeboxes.txt获取盒子配置"""
-    #     try:
-    #         if not os.path.exists('static/premadeboxes.txt'):
-    #             raise FileNotFoundError("static/premadeboxes.txt file not found")
-                
-    #         with open('static/premadeboxes.txt', 'r') as f:
-    #             lines = f.readlines()
-            
-    #         # 初始化盒子配置
-    #         self.smallbox_default_dict = {'price': Decimal('0'), 'contents': []}
-    #         self.mediumbox_default_dict = {'price': Decimal('0'), 'contents': []}
-    #         self.largebox_default_dict = {'price': Decimal('0'), 'contents': []}
-            
-    #         current_size = None
-    #         for line in lines:
-    #             line = line.strip()
-    #             if not line:  # 跳过空行
-    #                 continue
-                    
-    #             if line.startswith('['):
-    #                 current_size = line[1:-1].lower()
-    #             elif '=' in line and current_size:
-    #                 key, value = line.split('=')
-    #                 key = key.lower()
-                    
-    #                 if key == 'price':
-    #                     # 保存价格
-    #                     box_dict = getattr(self, f"{current_size}box_default_dict")
-    #                     box_dict['price'] = Decimal(value.strip()).quantize(
-    #                         Decimal('0.01'), rounding=ROUND_HALF_UP
-    #                     )
-    #                 elif key.startswith('item'):
-    #                     # 保存内容项
-    #                     box_dict = getattr(self, f"{current_size}box_default_dict")
-    #                     box_dict['contents'].append(value.strip())
-                        
-    #     except FileNotFoundError as e:
-    #         messagebox.showerror("File Error", str(e))
-    #         raise
-    #     except Exception as e:
-    #         messagebox.showerror("Error", f"Error parsing premadeboxes.txt: {str(e)}")
-    #         raise
 
-    def _setup_a_products(self):
+    def _setup_veggie_products(self):
         """设置A类商品(Veggies)界面"""
         # 主容器使用grid布局
-        main_container = ttk.Frame(self.a_frame)
+        main_container = ttk.Frame(self.veggie_frame)
         main_container.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         main_container.grid_columnconfigure(0, weight=1)
         
@@ -167,13 +73,13 @@ class Product:
         type_frame.grid(row=0, column=0, sticky='ew', padx=5, pady=5)
         
         # A类商品的Radiobuttons
-        for i, a_type in enumerate(['weight/kg', 'unit', 'pack']):
+        for i, veggie_type in enumerate(['weight/kg', 'unit', 'pack']):
             ttk.Radiobutton(
                 type_frame,
-                text=a_type,
-                value=a_type,
-                variable=self.a_type_var,
-                command=self._update_a_products
+                text=veggie_type,
+                value=veggie_type,
+                variable=self.veggie_type_var,
+                command=self._update_veggie_products
             ).grid(row=0, column=i, padx=5)
         
         # Product选择区域 - row 1
@@ -182,34 +88,27 @@ class Product:
         product_frame.grid_columnconfigure(1, weight=1)
         
         ttk.Label(product_frame, text="Product:").grid(row=0, column=0, padx=5)
-        self.a_product_var = tk.StringVar()
-        self.a_product_combo = ttk.Combobox(
+        self.veggie_product_var = tk.StringVar()
+        self.veggie_product_combo = ttk.Combobox(
             product_frame,
-            textvariable=self.a_product_var,
+            textvariable=self.veggie_product_var,
             state='readonly',
             width=40
         )
-        self.a_product_combo.grid(row=0, column=1, sticky='ew', padx=5)
+        self.veggie_product_combo.grid(row=0, column=1, sticky='ew', padx=5)
         
         # Quantity选择区域 - row 2
         quantity_frame = ttk.Frame(main_container)
         quantity_frame.grid(row=2, column=0, sticky='ew', padx=5, pady=5)
         
         ttk.Label(quantity_frame, text="Quantity:").pack(side=tk.LEFT, padx=5)
-        # self.a_quantity_spinbox = ttk.Spinbox(
-        #     quantity_frame,
-        #     from_=1,
-        #     to=100,
-        #     width=5,
-        #     wrap=True,
-        #     state='readonly'
-        # )
+        
         # 使用自定义的ValidatedSpinbox
-        self.a_quantity_spinbox = ValidatedSpinbox(quantity_frame)
-        self.a_quantity_spinbox.model = 'float'
-        self.a_quantity_spinbox.pack(side=tk.LEFT, padx=5)
+        self.veggie_quantity_spinbox = ValidatedSpinbox(quantity_frame)
+        self.veggie_quantity_spinbox.model = 'float'
+        self.veggie_quantity_spinbox.pack(side=tk.LEFT, padx=5)
         # 设置默认值为 1
-        self.a_quantity_spinbox.set('1')
+        self.veggie_quantity_spinbox.set('1')
         
         # 按钮区域 - row 3
         button_frame = ttk.Frame(main_container)
@@ -218,7 +117,7 @@ class Product:
         ttk.Button(
             button_frame,
             text="Add to Cart",
-            command=self._add_to_cart_a
+            command=self._add_veggie_to_cart
         ).pack(side=tk.LEFT, padx=5)
         
         ttk.Button(
@@ -239,13 +138,13 @@ class Product:
         main_container.grid_rowconfigure(4, weight=1)
         
         # 更新商品列表
-        self._update_a_products()
+        self._update_veggie_products()
 
 
-    def _setup_b_products(self):
+    def _setup_box_products(self):
         """设置B类商品(Premade Boxes)界面"""
         # 主容器使用grid布局
-        main_container = ttk.Frame(self.b_frame)
+        main_container = ttk.Frame(self.box_frame)
         main_container.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         main_container.grid_columnconfigure(0, weight=1)
         
@@ -259,7 +158,7 @@ class Product:
                 size_frame,
                 text=f"{size.capitalize()} (${float(price):.2f})",
                 value=size,
-                variable=self.b_size_var,
+                variable=self.box_size_var,
                 command=self._update_b_contents
             ).grid(row=0, column=i, padx=5)
         
@@ -293,19 +192,12 @@ class Product:
         quantity_frame.grid(row=2, column=0, sticky='ew', padx=5, pady=5)
         
         ttk.Label(quantity_frame, text="Quantity:").pack(side=tk.LEFT, padx=5)
-        # self.b_quantity_spinbox = ttk.Spinbox(
-        #     quantity_frame,
-        #     from_=1,
-        #     to=100,
-        #     width=5,
-        #     wrap=True,
-        #     state='readonly'
-        # )
+        
         # 使用自定义的ValidatedSpinbox
-        self.b_quantity_spinbox = ValidatedSpinbox(quantity_frame)
-        self.b_quantity_spinbox.pack(side=tk.LEFT, padx=5)
+        self.box_quantity_spinbox = ValidatedSpinbox(quantity_frame)
+        self.box_quantity_spinbox.pack(side=tk.LEFT, padx=5)
         # 设置默认值为 1
-        self.b_quantity_spinbox.set('1')
+        self.box_quantity_spinbox.set('1')
         
         
         # 按钮区域 - row 3
@@ -339,7 +231,7 @@ class Product:
         self._update_b_contents()
 
         # 设置quantity的model
-        self.b_quantity_spinbox.model = 'int'
+        self.box_quantity_spinbox.model = 'int'
 
     def _setup_cart(self):
         """设置购物车界面"""
@@ -392,15 +284,15 @@ class Product:
         
         self.cart_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-    def _update_a_products(self):
+    def _update_veggie_products(self):
         """更新A类商品下拉框的内容"""
-        current_type = self.a_type_var.get()
+        current_type = self.veggie_type_var.get()
         
         # 切换quantiy的model
         if current_type == 'weight/kg':
-            self.a_quantity_spinbox.model = 'float'
+            self.veggie_quantity_spinbox.model = 'float'
         else:
-            self.a_quantity_spinbox.model = 'int'
+            self.veggie_quantity_spinbox.model = 'int'
 
         # 类型名称映射
         type_mapping = {
@@ -414,15 +306,15 @@ class Product:
         options = getattr(self, list_name)
         
         if options:
-            self.a_product_combo['values'] = options
-            self.a_product_combo.set(options[0])
+            self.veggie_product_combo['values'] = options
+            self.veggie_product_combo.set(options[0])
         else:
-            self.a_product_combo['values'] = []
-            self.a_product_combo.set('')
+            self.veggie_product_combo['values'] = []
+            self.veggie_product_combo.set('')
 
     def _update_b_contents(self):
         """更新B类商品的contents显示"""
-        current_size = self.b_size_var.get()
+        current_size = self.box_size_var.get()
         box_dict = getattr(self, f"{current_size}box_default_dict")
         num_items = getattr(self, f"{current_size}_size")
         
@@ -445,16 +337,16 @@ class Product:
                 combo.grid_remove()
 
 
-    def _add_to_cart_a(self):
+    def _add_veggie_to_cart(self):
         """Add Veggie (Class A) product to the shopping cart."""
         try:
-            product = self.a_product_var.get()
+            product = self.veggie_product_var.get()
             if not product:
                 messagebox.showwarning("Warning", "Please select a product")
                 return
 
             # Allow for decimal quantities without enforcing two decimal places
-            quantity = Decimal(self.a_quantity_spinbox.get())
+            quantity = Decimal(self.veggie_quantity_spinbox.get())
             
             # Ensure quantity is positive
             if quantity <= 0:
@@ -481,8 +373,8 @@ class Product:
     def _add_to_cart_b(self):
         """添加B类商品(Premade Boxes)到购物车"""
         try:
-            size = self.b_size_var.get()
-            quantity = int(self.b_quantity_spinbox.get())
+            size = self.box_size_var.get()
+            quantity = int(self.box_quantity_spinbox.get())
             box_dict = getattr(self, f"{size}box_default_dict")
             price = box_dict['price']
             subtotal = (price * Decimal(quantity)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
@@ -519,7 +411,7 @@ class Product:
                 return
             
             # Initialize cart list and total
-            self.cart_list = []
+            self.cart_dict = []
             total = Decimal('0.00')
             
             # Iterate through cart items
@@ -559,7 +451,7 @@ class Product:
                     'contents': contents        # Box contents (if it's a box type)
                 }
             
-                self.cart_list.append(cart_item)
+                self.cart_dict.append(cart_item)
                 
                 # Accumulate total price
                 total += subtotal
@@ -575,7 +467,7 @@ class Product:
             )
             
             # 打印订单信息
-            print(self.cart_list)
+            print(self.cart_dict)
 
             if response is None:  # Cancel was clicked
                 return

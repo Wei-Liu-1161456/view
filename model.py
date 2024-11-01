@@ -11,6 +11,8 @@ DEFAULT_CORPORATE_DISCOUNT = Decimal('0.10')
 DELIVERY_RADIUS_KM = 20
 DELIVERY_FEE = Decimal('10.00')
 
+
+
 class Person:
     def __init__(self, first_name: str, last_name: str, username: str, password: str):
         self.first_name = first_name
@@ -215,6 +217,10 @@ class Staff(Person):
             print(f"Error fulfilling order: {e}")
             return False
 
+class DeliveryMethod(Enum):
+    PICKUP = "pickup"
+    DELIVERY = "delivery"
+
 class Customer(Person):
     def __init__(self, first_name: str, last_name: str, username: str, password: str, 
                  cust_address: str, cust_balance: Decimal, max_owing: Decimal, cust_id: str):
@@ -261,31 +267,27 @@ class Customer(Person):
             print(f"Error checking order possibility: {e}")
             return False
 
-    def make_payment(self, amount: Decimal, payment_method: str, payment_details: dict) -> bool:
-        """Make payment using credit or debit card"""
+    def make_payment(self, *, payment_amount: Decimal, payment_date: date, 
+                payment_method: str, card_number: str = None, 
+                card_type: str = None, card_expiry_date: date = None,
+                bank_name: str = None) -> bool:
+        """Make payment using credit or debit card for corporate customer"""
         try:
-            # 读取客户数据
-            with open('data/private_customers.pkl', 'rb') as file:
-                customers = pickle.load(file)
-                customer = customers.get(self.cust_id)
-                if not customer or amount > customer.cust_balance:
-                    print("Invalid payment amount or customer")
-                    return False
-
             # 创建支付记录
-            payment_date = date.today()
             if payment_method == "credit":
                 payment = CreditCardPayment(
-                    amount, payment_date,
-                    payment_details['card_number'],
-                    payment_details['card_type'],
-                    payment_details['expiry_date']
+                    payment_amount=payment_amount,
+                    payment_date=payment_date,
+                    card_number=card_number,
+                    card_type=card_type,
+                    card_expiry_date=card_expiry_date
                 )
             else:  # debit
                 payment = DebitCardPayment(
-                    amount, payment_date,
-                    payment_details['bank_name'],
-                    payment_details['card_number']
+                    payment_amount=payment_amount,
+                    payment_date=payment_date,
+                    bank_name=bank_name,
+                    debit_card_num=card_number
                 )
 
             # 更新支付记录
@@ -293,65 +295,115 @@ class Customer(Person):
                 payments = pickle.load(file)
             payments[payment.payment_id] = payment
 
-            # 更新客户余额
-            customer.cust_balance -= amount
-            customer.list_of_payments.append(payment)
-            customers[self.cust_id] = customer
-
-            # 保存所有更新
+            # 保存支付记录
             with open('data/payments.pkl', 'wb') as file:
                 pickle.dump(payments, file)
-            with open('data/private_customers.pkl', 'wb') as file:
-                pickle.dump(customers, file)
 
-            print(f"Payment successful: ${amount}")
-            print(f"New balance: ${customer.cust_balance}")
+            print(f"Payment successful: ${payment_amount}")
             return True
 
         except Exception as e:
-            print(f"Error processing payment: {e}")
+            print(f"Error processing corporate payment: {e}")
             return False
 
-    def check_out_order(self, order: 'Order', payment_method: str, payment_details: dict = None) -> bool:
-        """Check out an order with specified payment method"""
+    def check_out_with_payment(self, items: List['Item'], delivery_method: DeliveryMethod,
+                          payment_method: str, *, 
+                          # credit card parameters
+                          card_number: str = None,
+                          card_type: str = None, 
+                          card_expiry_date: date = None,
+                          cvv: str = None,
+                          card_holder: str = None,
+                          # debit card parameters
+                          bank_name: str = None,
+                          debit_card_num: str = None) -> bool:
+        """Process checkout with immediate payment"""
         try:
-            # 验证订单金额
+            # 1. 创建订单
+            order = Order(
+                order_customer=self,
+                order_date=date.today(),
+                delivery_method=delivery_method
+            )
+            order.set_items(items)
+
+            # 2. 验证订单金额
             if not self.can_place_order(order.total_amount):
                 print("Order amount exceeds available credit")
                 return False
 
-            # 读取订单和客户数据
+            # 3. 处理支付
+            if payment_method == "account":
+                # 账户支付
+                if not self.charge_to_account(order.total_amount):
+                    return False
+            elif payment_method == "credit":
+                # 信用卡支付
+                if not self.make_payment(
+                    payment_amount=order.total_amount,
+                    payment_date=date.today(),
+                    payment_method=payment_method,
+                    card_number=card_number,
+                    card_type=card_type,
+                    card_expiry_date=card_expiry_date,
+                    cvv=cvv,
+                    card_holder=card_holder
+                ):
+                    return False
+            else:  # debit
+                # 借记卡支付
+                if not self.make_payment(
+                    payment_amount=order.total_amount,
+                    payment_date=date.today(),
+                    payment_method=payment_method,
+                    bank_name=bank_name,
+                    debit_card_num=debit_card_num
+                ):
+                    return False
+
+            # 4. 保存订单
             with open('data/orders.pkl', 'rb') as file:
                 orders = pickle.load(file)
             with open('data/private_customers.pkl', 'rb') as file:
                 customers = pickle.load(file)
 
-            if payment_method == "account":
-                # 记账支付
-                if not self.charge_to_account(order.total_amount):
-                    return False
-            else:
-                # 信用卡或借记卡支付
-                if not self.make_payment(order.total_amount, payment_method, payment_details):
-                    return False
-
-            # 更新订单状态
+            # 5. 更新订单状态
             order.order_status = OrderStatus.PENDING
             self.list_of_orders.append(order)
             orders[order.order_number] = order
             customers[self.cust_id] = self
 
-            # 保存更新
+            # 6. 保存更新
             with open('data/orders.pkl', 'wb') as file:
                 pickle.dump(orders, file)
             with open('data/private_customers.pkl', 'wb') as file:
                 pickle.dump(customers, file)
 
-            print(f"Order {order.order_number} checked out successfully")
+            print(f"Order {order.order_number} created and paid successfully")
             return True
 
         except Exception as e:
-            print(f"Error during checkout: {e}")
+            print(f"Error during checkout and payment: {e}")
+            return False
+        
+    def charge_to_account(self, amount: Decimal) -> bool:
+        """Charge amount to customer account"""
+        try:
+            with open('data/private_customers.pkl', 'rb') as file:
+                customers = pickle.load(file)
+                if self.cust_id not in customers:
+                    return False
+                
+                self.cust_balance += amount
+                customers[self.cust_id] = self
+                
+                with open('data/private_customers.pkl', 'wb') as file:
+                    pickle.dump(customers, file)
+                
+                print(f"Successfully charged ${amount} to account {self.cust_id}")
+                return True
+        except Exception as e:
+            print(f"Error charging to account: {e}")
             return False
 
     def view_current_orders(self) -> List['Order']:
@@ -392,27 +444,175 @@ class Customer(Person):
 
 
 class CorporateCustomer(Customer):
-    '''the CorporateCustomer class'''
     def __init__(self, first_name: str, last_name: str, username: str, password: str, 
-                 cust_address: str, cust_balance: Decimal, max_owing: Decimal, discount_rate: Decimal, 
-                 corporate_cust_id: str):
-        '''Initializes the CorporateCustomer class'''
-        super().__init__(first_name, last_name, username, password, cust_address, cust_balance, max_owing, corporate_cust_id)
+                 cust_address: str, cust_balance: Decimal, max_owing: Decimal, 
+                 discount_rate: Decimal, corporate_cust_id: str):
+        super().__init__(first_name, last_name, username, password, 
+                        cust_address, cust_balance, max_owing, corporate_cust_id)
         self.discount_rate = discount_rate
 
-    def __str__(self):
-        '''Return a string representation of the CorporateCustomer object'''
-        return (f"Customer ID: {self.cust_id}\n"
-                f"Name: {self.first_name} {self.last_name}\n"
-                f"Username: {self.username}\n"
-                f"Address: {self.cust_address}\n"
-                f"Balance: {self.cust_balance}\n"
-                f"Credit Limit: {self.max_owing}\n"
-                f"Discount Rate: {self.discount_rate:.2%}")  # Display discount rate as a percentage
-    
-    # place order: this method is needed to be override, because the corporate customer has a discount rate
-    def place_order(self):
-        pass
+    def __str__(self) -> str:
+        """String representation including discount rate"""
+        base_str = super().__str__()
+        return base_str[:-1] + f"Discount Rate: {self.discount_rate:.0%}\n"
+
+    def can_place_order(self, order_amount: Decimal) -> bool:
+        """Check if corporate customer can place order based on total amount and max owing limit"""
+        try:
+            with open('data/corporate_customers.pkl', 'rb') as file:  # 改用corporate文件
+                customers = pickle.load(file)
+                customer = customers.get(self.cust_id)
+                if customer:
+                    potential_balance = customer.cust_balance + order_amount
+                    can_place = potential_balance <= customer.max_owing
+                    print(f"Order amount: ${order_amount}")
+                    print(f"Current balance: ${customer.cust_balance}")
+                    print(f"Max owing: ${customer.max_owing}")
+                    print(f"Can place order: {can_place}")
+                    return can_place
+                return False
+        except Exception as e:
+            print(f"Error checking order possibility: {e}")
+            return False
+
+    def check_out_with_payment(self, items: List['Item'], delivery_method: DeliveryMethod,
+                          payment_method: str, *, 
+                          # credit card parameters
+                          card_number: str = None,
+                          card_type: str = None, 
+                          card_expiry_date: date = None,
+                          cvv: str = None,
+                          card_holder: str = None,
+                          # debit card parameters
+                          bank_name: str = None,
+                          debit_card_num: str = None) -> bool:
+        """Process checkout with immediate payment for corporate customer"""
+        try:
+            # 1. 创建订单
+            order = Order(
+                order_customer=self,
+                order_date=date.today(),
+                delivery_method=delivery_method
+            )
+            order.set_items(items)
+
+            # 2. 验证订单金额
+            if not self.can_place_order(order.total_amount):
+                print("Order amount exceeds available credit limit for corporate customer")
+                return False
+
+            # 3. 处理支付
+            if payment_method == "account":
+                # 账户支付
+                if not self.charge_to_account(order.total_amount):
+                    return False
+            elif payment_method == "credit":
+                # 信用卡支付
+                if not self.make_payment(
+                    payment_amount=order.total_amount,
+                    payment_date=date.today(),
+                    payment_method=payment_method,
+                    card_number=card_number,
+                    card_type=card_type,
+                    card_expiry_date=card_expiry_date,
+                    cvv=cvv,
+                    card_holder=card_holder
+                ):
+                    return False
+            else:  # debit
+                # 借记卡支付
+                if not self.make_payment(
+                    payment_amount=order.total_amount,
+                    payment_date=date.today(),
+                    payment_method=payment_method,
+                    bank_name=bank_name,
+                    debit_card_num=debit_card_num
+                ):
+                    return False
+
+            # 4. 保存订单
+            with open('data/orders.pkl', 'rb') as file:
+                orders = pickle.load(file)
+            with open('data/corporate_customers.pkl', 'rb') as file:  # 这里改为corporate
+                customers = pickle.load(file)
+
+            # 5. 更新订单状态
+            order.order_status = OrderStatus.PENDING
+            self.list_of_orders.append(order)
+            orders[order.order_number] = order
+            customers[self.cust_id] = self
+
+            # 6. 保存更新
+            with open('data/orders.pkl', 'wb') as file:
+                pickle.dump(orders, file)
+            with open('data/corporate_customers.pkl', 'wb') as file:  # 这里改为corporate
+                pickle.dump(customers, file)
+
+            print(f"Corporate customer order {order.order_number} created and paid successfully")
+            print(f"Applied discount rate: {self.discount_rate:.0%}")
+            return True
+
+        except Exception as e:
+            print(f"Error during corporate checkout and payment: {e}")
+            return False
+        
+    def charge_to_account(self, amount: Decimal) -> bool:
+        """Charge amount to corporate customer account"""
+        try:
+            with open('data/corporate_customers.pkl', 'rb') as file:
+                customers = pickle.load(file)
+                if self.cust_id not in customers:
+                    return False
+                
+                self.cust_balance += amount
+                customers[self.cust_id] = self
+                
+                with open('data/corporate_customers.pkl', 'wb') as file:
+                    pickle.dump(customers, file)
+                
+                print(f"Successfully charged ${amount} to corporate account {self.cust_id}")
+                return True
+        except Exception as e:
+            print(f"Error charging to corporate account: {e}")
+            return False
+
+     #------------------后续需要删除, 只用来测试信息是否正确------------------   
+    def view_current_orders(self) -> List['Order']:
+            """View corporate customer's current (pending) orders"""
+            try:
+                with open('data/orders.pkl', 'rb') as file:
+                    orders = pickle.load(file)
+                    current_orders = [
+                        order for order in orders.values()
+                        if order.order_customer.cust_id == self.cust_id 
+                        and order.order_status == OrderStatus.PENDING
+                    ]
+                    print(f"\nCurrent orders for corporate customer {self.cust_id}:")
+                    for order in current_orders:
+                        print(f"\n{order}")
+                    return current_orders
+            except Exception as e:
+                print(f"Error viewing current orders: {e}")
+                return []
+    #------------------后续需要删除, 只用来测试信息是否正确------------------
+    def view_previous_orders(self) -> List['Order']:
+        """View corporate customer's fulfilled orders"""
+        try:
+            with open('data/orders.pkl', 'rb') as file:
+                orders = pickle.load(file)
+                previous_orders = [
+                    order for order in orders.values()
+                    if order.order_customer.cust_id == self.cust_id 
+                    and order.order_status == OrderStatus.FULFILLED
+                ]
+                print(f"\nPrevious orders for corporate customer {self.cust_id}:")
+                for order in previous_orders:
+                    print(f"\n{order}")
+                return previous_orders
+        except Exception as e:
+            print(f"Error viewing previous orders: {e}")
+            return []
+
 
 class Payment:
     payment_id = 1000
@@ -430,7 +630,8 @@ class Payment:
 #==================fianal version==================
 class CreditCardPayment(Payment):
     def __init__(self, *, payment_amount: Decimal, payment_date: date,
-                 card_number: str, card_type: str, card_expiry_date: date):
+                 card_number: str, card_type: str, card_expiry_date: date,
+                 cvv: str, card_holder: str):
         """Initialize CreditCardPayment with keyword arguments
         Args:
             payment_amount: Amount of payment
@@ -438,11 +639,15 @@ class CreditCardPayment(Payment):
             card_number: Credit card number
             card_type: Type of credit card
             card_expiry_date: Card expiry date
+            cvv: Card verification value
+            card_holder: Name of the card holder
         """
         super().__init__(payment_amount=payment_amount, payment_date=payment_date)
         self.card_number = card_number
         self.card_type = card_type
         self.card_expiry_date = card_expiry_date
+        self.cvv = cvv
+        self.card_holder = card_holder
 
 #==================fianal version==================
 class DebitCardPayment(Payment):
@@ -558,7 +763,7 @@ class Item(ABC):
 
 class Veggie(Item):
     def __init__(self, veg_name: str):
-        super().__init__()
+        super().__init__(veg_name)
         # self.veg_name = veg_name
 
 
