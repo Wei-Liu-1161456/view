@@ -228,7 +228,6 @@ class Customer(Person):
         # 新增：根据地址确定是否支持配送
         try:
             distance = int(''.join(filter(str.isdigit, self.cust_address)))
-            print(distance)
             self.can_delivery = distance <= DELIVERY_RADIUS_KM
         except ValueError:
             self.can_delivery = False

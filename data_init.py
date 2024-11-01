@@ -77,6 +77,6 @@ print()
 save_data("data/private_customers.pkl", private_customers, "Private customers")
 save_data("data/corporate_customers.pkl", corporate_customers, "Corporate customers")
 
-# Analyze the test data
+# # Analyze the test data
 # if __name__ == "__main__":
 #     analyze_test_data()
