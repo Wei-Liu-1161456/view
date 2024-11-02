@@ -404,7 +404,7 @@ class StaffHome:
         """Display content in text widget"""
         try:
             for widget in self.display_frame.winfo_children():
-                widget.destroy()
+                widget.pack_forget()
             
             ttk.Label(
                 self.display_frame,
@@ -447,7 +447,7 @@ class StaffHome:
         """Display content in treeview"""
         try:
             for widget in self.display_frame.winfo_children():
-                widget.destroy()
+                widget.pack_forget()
             
             # Title container
             title_frame = ttk.Frame(self.display_frame)
@@ -481,7 +481,7 @@ class StaffHome:
         try:
             # Clear existing content
             for widget in self.display_frame.winfo_children():
-                widget.destroy()
+                widget.pack_forget()
             
             # Title
             ttk.Label(

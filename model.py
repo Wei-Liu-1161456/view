@@ -11,10 +11,16 @@ DEFAULT_CORPORATE_DISCOUNT = Decimal('0.10')
 DELIVERY_RADIUS_KM = 20
 DELIVERY_FEE = Decimal('10.00')
 
-
-
 class Person:
     def __init__(self, first_name: str, last_name: str, username: str, password: str):
+        """Initialize a person with basic information
+        
+        Args:
+            first_name (str): Person's first name
+            last_name (str): Person's last name
+            username (str): Username for system login
+            password (str): Password for system login
+        """
         self.first_name = first_name
         self.last_name = last_name
         self.username = username
@@ -23,12 +29,24 @@ class Person:
 class Staff(Person):
     def __init__(self, first_name: str, last_name: str, username: str, password: str, 
                  dept_name: str, date_joined: date, staff_ID: str):
+        """Initialize a staff member
+        
+        Args:
+            first_name (str): Staff's first name
+            last_name (str): Staff's last name
+            username (str): Username for system login
+            password (str): Password for system login
+            dept_name (str): Department name
+            date_joined (date): Date when staff joined
+            staff_ID (str): Unique staff identifier
+        """
         super().__init__(first_name, last_name, username, password)
         self.dept_name = dept_name
         self.date_joined = date_joined
         self.staff_ID = staff_ID
     
     def __str__(self):
+        """Return string representation of staff member"""
         return (f"Staff ID: {self.staff_ID}\n"
                 f"Name: {self.first_name} {self.last_name}\n"
                 f"Username: {self.username}\n"
@@ -36,7 +54,11 @@ class Staff(Person):
                 f"Date Joined: {self.date_joined}")
 
     def _print_order_items(self, order: 'Order'):
-        """Helper method to print order items with details"""
+        """Helper method to print order items with details
+        
+        Args:
+            order (Order): Order object containing items to print
+        """
         print(f"Items:")
         for item in order.list_of_items:
             if isinstance(item, PremadeBox):
@@ -47,36 +69,46 @@ class Staff(Person):
             else:
                 print(f"- {item.item_name} x {item.quantity} (${item.total_price})")
 
-
     def show_current_orders(self) -> Dict[str, Dict[str, Any]]:
-        """Show all orders with 'pending' status"""
-        try:
-            with open('data/orders.pkl', 'rb') as file:
-                orders = pickle.load(file)
-                # first filter out orders with pending status
-                pending_orders = {k: v for k, v in orders.items() 
-                                if v.order_status == OrderStatus.PENDING}
-                
-                # and then create the result dictionary
-                current_orders = {
-                    order.order_number: {
-                        "Customer": f"{order.order_customer.first_name} {order.order_customer.last_name}",
-                        "Date": order.order_date,
-                        "Status": order.order_status.value,
-                        "Items": self._get_order_items_string(order),
-                        "Subtotal": order.subtotal,
-                        "Delivery Fee": order.delivery_fee,
-                        "Total Amount": order.total_amount
-                    } 
-                    for order in pending_orders.values()
-                }
-                
-                return current_orders
-        except Exception as e:
-            return {"Error": f"Error loading orders: {str(e)}"}
+            """Show all orders with 'pending' status
+            
+            Returns:
+                Dict[str, Dict[str, Any]]: Dictionary containing pending orders with their details
+            """
+            try:
+                with open('data/orders.pkl', 'rb') as file:
+                    orders = pickle.load(file)
+                    # Filter orders with pending status
+                    pending_orders = {k: v for k, v in orders.items() 
+                                    if v.order_status == OrderStatus.PENDING}
+                    
+                    # Create the result dictionary
+                    current_orders = {
+                        order.order_number: {
+                            "Customer": f"{order.order_customer.first_name} {order.order_customer.last_name}",
+                            "Date": order.order_date,
+                            "Status": order.order_status.value,
+                            "Items": self._get_order_items_string(order),
+                            "Subtotal": order.subtotal,
+                            "Delivery Fee": order.delivery_fee,
+                            "Total Amount": order.total_amount
+                        } 
+                        for order in pending_orders.values()
+                    }
+                    
+                    return current_orders
+            except Exception as e:
+                return {"Error": f"Error loading orders: {str(e)}"}
 
     def _get_order_items_string(self, order) -> str:
-        """Helper method to format order items as string"""
+        """Helper method to format order items as string
+        
+        Args:
+            order: Order object containing items to format
+            
+        Returns:
+            str: Formatted string containing items details
+        """
         items_str = ""
         for item in order.list_of_items:
             if hasattr(item, 'quantity'):
@@ -86,15 +118,19 @@ class Staff(Person):
         return items_str
 
     def show_previous_orders(self) -> Dict[str, Dict[str, Any]]:
-        """Show all orders with 'fulfilled' status"""
+        """Show all orders with 'fulfilled' status
+        
+        Returns:
+            Dict[str, Dict[str, Any]]: Dictionary containing fulfilled orders with their details
+        """
         try:
             with open('data/orders.pkl', 'rb') as file:
                 orders = pickle.load(file)
-                # 先筛选出 fulfilled 状态的订单
+                # Filter fulfilled orders
                 fulfilled_orders = {k: v for k, v in orders.items() 
                                 if v.order_status == OrderStatus.FULFILLED}
                 
-                # 然后创建结果字典
+                # Create result dictionary
                 previous_orders = {
                     order.order_number: {
                         "Customer": f"{order.order_customer.first_name} {order.order_customer.last_name}",
@@ -111,55 +147,50 @@ class Staff(Person):
                 return previous_orders
         except Exception as e:
             return {"Error": f"Error loading orders: {str(e)}"}
-
-    def show_all_customers(self) -> str:
-        """Show all customers (both private and corporate) and return a formatted string for display.
         
-        Returns:
-            A formatted string containing all customer information.
-        """
-        try:
-            # Load private customers
-            with open('data/private_customers.pkl', 'rb') as file:
-                private_customers = pickle.load(file)
+    def show_all_customers(self) -> str:
+            """Show all customers (both private and corporate)
             
-            # Load corporate customers
-            with open('data/corporate_customers.pkl', 'rb') as file:
-                corporate_customers = pickle.load(file)
-            
-            # Initialize formatted strings for display
-            formatted_customers = "\n=== Private Customers ===\n"
-            for cust_id, customer in private_customers.items():
-                formatted_customers += (
-                    f"\nCustomer ID: {cust_id}\n"
-                    f"Name: {customer.first_name} {customer.last_name}\n"
-                    f"Address: {customer.cust_address}\n"
-                    f"Balance: ${customer.cust_balance}\n"
-                    f"Max Owing: ${customer.max_owing}\n"
-                )
-            
-            formatted_customers += "\n=== Corporate Customers ===\n"
-            for cust_id, customer in corporate_customers.items():
-                formatted_customers += (
-                    f"\nCustomer ID: {cust_id}\n"
-                    f"Name: {customer.first_name} {customer.last_name}\n"
-                    f"Address: {customer.cust_address}\n"
-                    f"Balance: ${customer.cust_balance}\n"
-                    f"Max Owing: ${customer.max_owing}\n"
-                    f"Discount Rate: {customer.discount_rate * 100}%\n"
-                )
-            
-            # Return the combined formatted string
-            return formatted_customers
-        except Exception as e:
-            # Return an error message if loading fails
-            return "Error loading customers."
+            Returns:
+                str: Formatted string containing all customer information
+            """
+            try:
+                # Load private customers
+                with open('data/private_customers.pkl', 'rb') as file:
+                    private_customers = pickle.load(file)
+                
+                # Load corporate customers
+                with open('data/corporate_customers.pkl', 'rb') as file:
+                    corporate_customers = pickle.load(file)
+                
+                # Initialize formatted strings for display
+                formatted_customers = "\n=== Private Customers ===\n"
+                for cust_id, customer in private_customers.items():
+                    formatted_customers += (
+                        f"\nCustomer ID: {cust_id}\n"
+                        f"Name: {customer.first_name} {customer.last_name}\n"
+                        f"Address: {customer.cust_address}\n"
+                        f"Balance: ${customer.cust_balance}\n"
+                        f"Max Owing: ${customer.max_owing}\n"
+                    )
+                
+                formatted_customers += "\n=== Corporate Customers ===\n"
+                for cust_id, customer in corporate_customers.items():
+                    formatted_customers += (
+                        f"\nCustomer ID: {cust_id}\n"
+                        f"Name: {customer.first_name} {customer.last_name}\n"
+                        f"Address: {customer.cust_address}\n"
+                        f"Balance: ${customer.cust_balance}\n"
+                        f"Max Owing: ${customer.max_owing}\n"
+                        f"Discount Rate: {customer.discount_rate * 100}%\n"
+                    )
+                
+                return formatted_customers
+            except Exception as e:
+                return "Error loading customers."
 
     def show_sales_report(self, start_date: date, end_date: date) -> str:
         """Generate a sales report for a specific date range.
-        
-        This method loads orders from a pickle file, filters them based on the date range,
-        and generates a formatted report string containing order details and total sales.
         
         Args:
             start_date (date): Start date of the report period
@@ -203,7 +234,7 @@ class Staff(Person):
                 for item in order.list_of_items:
                     if isinstance(item, PremadeBox):
                         # Handle PremadeBox items
-                        report.append(f"  - {item.item_name} (Box) x {item.quantity} x ${item.price:.2f} each")
+                        report.append(f"  - {item.item_name} (Box) x {item.quantity} x ${item.price:.2f}")
                         report.append("    Contents:")
                         for content in item.box_content:
                             if isinstance(content, WeightedVeggie):
@@ -228,7 +259,6 @@ class Staff(Person):
                 report.append(f"Delivery Fee: ${order.delivery_fee:.2f}")
                 report.append(f"Final Sales Amount: ${order.sales_amount:.2f}\n")
             
-            # Join all report lines with newlines and return
             return '\n'.join(report)
             
         except Exception as e:
@@ -236,39 +266,24 @@ class Staff(Person):
             print(error_msg)  # For debugging
             return error_msg
 
-    def _get_order_items_str(self, order) -> str:
-        """Helper method to format order items information.
-        
-        Args:
-            order: Order object containing items information
-            
-        Returns:
-            str: Formatted string containing items details
-        """
-        items_lines = []
-        items_lines.append("Items:")
-        for item in order.list_of_items:
-            items_lines.append(f"  - {item.quantity}x {item.product.name} (${item.price} each)")
-        return '\n'.join(items_lines)
-
     def show_popular_products(self) -> str:
-        """Show popular products based on quantity sold across different categories (veggies and premade boxes).
+        """Show popular products based on quantity sold across different categories
         
         Returns:
-            A formatted string listing the popular products and their total quantities sold, sorted from high to low.
+            str: Formatted string listing popular products and their total quantities sold
         """
         try:
-            # Load orders from the pickle file
+            # Load orders from pickle file
             with open('data/orders.pkl', 'rb') as file:
                 orders = pickle.load(file)
             
-            # Initialize dictionaries to keep track of product quantities sold
-            veggie_sales = {}     # For all veggie products (including those in premade boxes)
+            # Initialize dictionaries for product quantities
+            veggie_sales = {}     # For all veggie products
             premade_box_sales = {} # For premade boxes
             
             for order in orders.values():
                 for item in order.list_of_items:
-                    # Check if item is a veggie product
+                    # Handle veggie products
                     if isinstance(item, WeightedVeggie) or isinstance(item, UnitPriceVeggie) or isinstance(item, PackVeggie):
                         item_name = item.item_name
                         if isinstance(item, WeightedVeggie):
@@ -278,13 +293,13 @@ class Staff(Person):
                         elif isinstance(item, PackVeggie):
                             veggie_sales[item_name] = veggie_sales.get(item_name, 0) + item.num_of_pack
                     
-                    # Check if the order contains premade boxes
+                    # Handle premade boxes
                     if isinstance(item, PremadeBox):
                         box_name = item.item_name
-                        # Count the premade box itself
+                        # Count the premade box
                         premade_box_sales[box_name] = premade_box_sales.get(box_name, 0) + item.quantity
                         
-                        # Count the contents of the premade box
+                        # Count box contents
                         for content in item.box_content:
                             content_name = content.item_name
                             if isinstance(content, WeightedVeggie):
@@ -294,36 +309,34 @@ class Staff(Person):
                             elif isinstance(content, PackVeggie):
                                 veggie_sales[content_name] = veggie_sales.get(content_name, 0) + content.num_of_pack
 
-            # Sort veggie sales from high to low
+            # Sort sales data
             sorted_veggie_sales = sorted(veggie_sales.items(), key=lambda x: x[1], reverse=True)
-            
-            # Sort premade box sales from high to low
             sorted_premade_box_sales = sorted(premade_box_sales.items(), key=lambda x: x[1], reverse=True)
 
-            # Prepare formatted strings for each category
+            # Format the report
             formatted_products = "\n=== Popular Products by Category ===\n"
             
-            # Format veggie sales
             formatted_products += "\n[Veggie Products]\n"
             for item_name, total_quantity in sorted_veggie_sales:
                 formatted_products += f"{item_name}: {total_quantity:.2f} sold\n"
 
-            # Format premade box sales
             formatted_products += "\n[Premade Boxes]\n"
             for box_name, quantity in sorted_premade_box_sales:
                 formatted_products += f"{box_name}: {quantity} sold\n"
 
-            # Return the formatted string for display
             return formatted_products
         
         except Exception as e:
-            # Return an error message if there is an exception during processing
             return f"Error generating popular products report: {e}"
-
-
-    def fulfill_order(self, order_number: str) -> bool:
+        
+def fulfill_order(self, order_number: str) -> bool:
         """Update order status from pending to fulfilled
-        Can only be called from current orders view
+        
+        Args:
+            order_number (str): The order number to fulfill
+            
+        Returns:
+            bool: True if successful, False otherwise
         """
         try:
             with open('data/orders.pkl', 'rb') as file:
@@ -346,12 +359,25 @@ class Staff(Person):
             return False
 
 class DeliveryMethod(Enum):
+    """Enum for delivery methods"""
     PICKUP = "pickup"
     DELIVERY = "delivery"
 
 class Customer(Person):
     def __init__(self, first_name: str, last_name: str, username: str, password: str, 
                  cust_address: str, cust_balance: Decimal, max_owing: Decimal, cust_id: str):
+        """Initialize a customer
+        
+        Args:
+            first_name (str): Customer's first name
+            last_name (str): Customer's last name
+            username (str): Username for system login
+            password (str): Password for system login
+            cust_address (str): Customer's delivery address
+            cust_balance (Decimal): Current balance
+            max_owing (Decimal): Maximum allowed owing amount
+            cust_id (str): Unique customer identifier
+        """
         super().__init__(first_name, last_name, username, password)
         self.cust_address = cust_address
         self.cust_balance = cust_balance
@@ -359,7 +385,7 @@ class Customer(Person):
         self.list_of_orders = []
         self.list_of_payments = []
         self.cust_id = cust_id
-        # 新增：根据地址确定是否支持配送
+        # Determine delivery availability based on address
         try:
             distance = int(''.join(filter(str.isdigit, self.cust_address)))
             self.can_delivery = distance <= DELIVERY_RADIUS_KM
@@ -367,6 +393,7 @@ class Customer(Person):
             self.can_delivery = False
 
     def __str__(self) -> str:
+        """Return string representation of customer"""
         return (f"Customer ID: {self.cust_id}\n"
                 f"Name: {self.first_name} {self.last_name}\n"
                 f"Username: {self.username}\n"
@@ -375,9 +402,15 @@ class Customer(Person):
                 f"Maximum Owing: ${self.max_owing:.2f}\n"
                 f"Delivery Available: {'Yes' if self.can_delivery else 'No'}\n")
 
-
     def can_place_order(self, order_amount: Decimal) -> bool:
-        """Check if customer can place order based on total amount and max owing limit"""
+        """Check if customer can place order based on total amount and max owing limit
+        
+        Args:
+            order_amount (Decimal): Amount of the potential order
+            
+        Returns:
+            bool: True if customer can place order, False otherwise
+        """
         try:
             with open('data/private_customers.pkl', 'rb') as file:
                 customers = pickle.load(file)
@@ -396,76 +429,103 @@ class Customer(Person):
             return False
 
     def make_payment(self, *, payment_amount: Decimal, payment_date: date, 
-                payment_method: str, **kwargs) -> bool:
-        """Make payment using credit or debit card for corporate customer"""
-        try:
-            # 添加支付方式验证
-            if payment_method not in ["credit", "debit", "account"]:
-                raise ValueError(f"Invalid payment method: {payment_method}")
-                
-            # 创建支付记录
-            if payment_method == "credit":
-                # 检查必需的信用卡参数是否都存在
-                required_credit_params = ['card_number', 'card_type', 
-                                        'card_expiry_date', 'cvv', 'card_holder']
-                for param in required_credit_params:
-                    if param not in kwargs:
-                        raise ValueError(f"Missing required credit card parameter: {param}")
+                    payment_method: str, **kwargs) -> bool:
+            """Make payment using credit or debit card
+            
+            Args:
+                payment_amount (Decimal): Amount to pay
+                payment_date (date): Date of payment
+                payment_method (str): Payment method ('credit', 'debit', or 'account')
+                **kwargs: Additional payment details depending on payment method:
+                    For credit card:
+                        - card_number (str)
+                        - card_type (str)
+                        - card_expiry_date (date)
+                        - cvv (str)
+                        - card_holder (str)
+                    For debit card:
+                        - bank_name (str)
+                        - debit_card_num (str)
                         
-                payment = CreditCardPayment(
-                    payment_amount=payment_amount,
-                    payment_date=payment_date,
-                    card_number=kwargs['card_number'],
-                    card_type=kwargs['card_type'],
-                    card_expiry_date=kwargs['card_expiry_date'],
-                    cvv=kwargs['cvv'],
-                    card_holder=kwargs['card_holder']
-                )
-                
-            elif payment_method == "debit":
-                # 检查必需的借记卡参数是否都存在
-                required_debit_params = ['bank_name', 'debit_card_num']
-                for param in required_debit_params:
-                    if param not in kwargs:
-                        raise ValueError(f"Missing required debit card parameter: {param}")
-                        
-                payment = DebitCardPayment(
-                    payment_amount=payment_amount,
-                    payment_date=payment_date,
-                    bank_name=kwargs['bank_name'],
-                    debit_card_num=kwargs['debit_card_num']
-                )
+            Returns:
+                bool: True if payment successful, False otherwise
+            """
+            try:
+                # Validate payment method
+                if payment_method not in ["credit", "debit", "account"]:
+                    raise ValueError(f"Invalid payment method: {payment_method}")
+                    
+                # Create payment record
+                if payment_method == "credit":
+                    # Check required credit card parameters
+                    required_credit_params = ['card_number', 'card_type', 
+                                            'card_expiry_date', 'cvv', 'card_holder']
+                    for param in required_credit_params:
+                        if param not in kwargs:
+                            raise ValueError(f"Missing required credit card parameter: {param}")
+                            
+                    payment = CreditCardPayment(
+                        payment_amount=payment_amount,
+                        payment_date=payment_date,
+                        card_number=kwargs['card_number'],
+                        card_type=kwargs['card_type'],
+                        card_expiry_date=kwargs['card_expiry_date'],
+                        cvv=kwargs['cvv'],
+                        card_holder=kwargs['card_holder']
+                    )
+                    
+                elif payment_method == "debit":
+                    # Check required debit card parameters
+                    required_debit_params = ['bank_name', 'debit_card_num']
+                    for param in required_debit_params:
+                        if param not in kwargs:
+                            raise ValueError(f"Missing required debit card parameter: {param}")
+                            
+                    payment = DebitCardPayment(
+                        payment_amount=payment_amount,
+                        payment_date=payment_date,
+                        bank_name=kwargs['bank_name'],
+                        debit_card_num=kwargs['debit_card_num']
+                    )
 
-            # 更新支付记录
-            with open('data/payments.pkl', 'rb') as file:
-                payments = pickle.load(file)
-            payments[payment.payment_id] = payment
+                # Update payment records
+                with open('data/payments.pkl', 'rb') as file:
+                    payments = pickle.load(file)
+                payments[payment.payment_id] = payment
 
-            # 保存支付记录
-            with open('data/payments.pkl', 'wb') as file:
-                pickle.dump(payments, file)
+                # Save payment records
+                with open('data/payments.pkl', 'wb') as file:
+                    pickle.dump(payments, file)
 
-            print(f"Payment successful: ${payment_amount}")
-            return True
+                print(f"Payment successful: ${payment_amount}")
+                return True
 
-        except Exception as e:
-            print(f"Error processing payment: {e}")
-            return False
+            except Exception as e:
+                print(f"Error processing payment: {e}")
+                return False
 
     def check_out_with_payment(self, items: List['Item'], delivery_method: DeliveryMethod,
                           payment_method: str, *, 
-                          # credit card parameters
                           card_number: str = None,
                           card_type: str = None, 
                           card_expiry_date: date = None,
                           cvv: str = None,
                           card_holder: str = None,
-                          # debit card parameters
                           bank_name: str = None,
                           debit_card_num: str = None) -> bool:
-        """Process checkout with immediate payment"""
+        """Process checkout with immediate payment
+        
+        Args:
+            items (List[Item]): List of items to purchase
+            delivery_method (DeliveryMethod): Pickup or delivery
+            payment_method (str): Payment method to use
+            Optional card payment parameters (see make_payment method)
+            
+        Returns:
+            bool: True if checkout successful, False otherwise
+        """
         try:
-            # 1. 创建订单
+            # Create order
             order = Order(
                 order_customer=self,
                 order_date=date.today(),
@@ -473,18 +533,16 @@ class Customer(Person):
             )
             order.set_items(items)
 
-            # 2. 验证订单金额
+            # Verify order amount
             if not self.can_place_order(order.total_amount):
                 print("Order amount exceeds available credit")
                 return False
 
-            # 3. 处理支付
+            # Process payment
             if payment_method == "account":
-                # 账户支付
                 if not self.charge_to_account(order.total_amount):
                     return False
             elif payment_method == "credit":
-                # 信用卡支付
                 if not self.make_payment(
                     payment_amount=order.total_amount,
                     payment_date=date.today(),
@@ -497,7 +555,6 @@ class Customer(Person):
                 ):
                     return False
             else:  # debit
-                # 借记卡支付
                 if not self.make_payment(
                     payment_amount=order.total_amount,
                     payment_date=date.today(),
@@ -507,19 +564,19 @@ class Customer(Person):
                 ):
                     return False
 
-            # 4. 保存订单
+            # Save order
             with open('data/orders.pkl', 'rb') as file:
                 orders = pickle.load(file)
             with open('data/private_customers.pkl', 'rb') as file:
                 customers = pickle.load(file)
 
-            # 5. 更新订单状态
+            # Update order status
             order.order_status = OrderStatus.PENDING
             self.list_of_orders.append(order)
             orders[order.order_number] = order
             customers[self.cust_id] = self
 
-            # 6. 保存更新
+            # Save updates
             with open('data/orders.pkl', 'wb') as file:
                 pickle.dump(orders, file)
             with open('data/private_customers.pkl', 'wb') as file:
@@ -533,27 +590,38 @@ class Customer(Person):
             return False
         
     def charge_to_account(self, amount: Decimal) -> bool:
-        """Charge amount to customer account"""
-        try:
-            with open('data/private_customers.pkl', 'rb') as file:
-                customers = pickle.load(file)
-                if self.cust_id not in customers:
-                    return False
+            """Charge amount to customer account
+            
+            Args:
+                amount (Decimal): Amount to charge
                 
-                self.cust_balance += amount
-                customers[self.cust_id] = self
-                
-                with open('data/private_customers.pkl', 'wb') as file:
-                    pickle.dump(customers, file)
-                
-                print(f"Successfully charged ${amount} to account {self.cust_id}")
-                return True
-        except Exception as e:
-            print(f"Error charging to account: {e}")
-            return False
+            Returns:
+                bool: True if charge successful, False otherwise
+            """
+            try:
+                with open('data/private_customers.pkl', 'rb') as file:
+                    customers = pickle.load(file)
+                    if self.cust_id not in customers:
+                        return False
+                    
+                    self.cust_balance += amount
+                    customers[self.cust_id] = self
+                    
+                    with open('data/private_customers.pkl', 'wb') as file:
+                        pickle.dump(customers, file)
+                    
+                    print(f"Successfully charged ${amount} to account {self.cust_id}")
+                    return True
+            except Exception as e:
+                print(f"Error charging to account: {e}")
+                return False
 
     def view_current_orders(self) -> List['Order']:
-        """View customer's current (pending) orders"""
+        """View customer's current (pending) orders
+        
+        Returns:
+            List[Order]: List of pending orders
+        """
         try:
             with open('data/orders.pkl', 'rb') as file:
                 orders = pickle.load(file)
@@ -571,7 +639,11 @@ class Customer(Person):
             return []
 
     def view_previous_orders(self) -> List['Order']:
-        """View customer's fulfilled orders"""
+        """View customer's fulfilled orders
+        
+        Returns:
+            List[Order]: List of fulfilled orders
+        """
         try:
             with open('data/orders.pkl', 'rb') as file:
                 orders = pickle.load(file)
@@ -593,6 +665,19 @@ class CorporateCustomer(Customer):
     def __init__(self, first_name: str, last_name: str, username: str, password: str, 
                  cust_address: str, cust_balance: Decimal, max_owing: Decimal, 
                  discount_rate: Decimal, corporate_cust_id: str):
+        """Initialize a corporate customer
+        
+        Args:
+            first_name (str): Customer's first name
+            last_name (str): Customer's last name
+            username (str): Username for system login
+            password (str): Password for system login
+            cust_address (str): Customer's delivery address
+            cust_balance (Decimal): Current balance
+            max_owing (Decimal): Maximum allowed owing amount
+            discount_rate (Decimal): Corporate discount rate
+            corporate_cust_id (str): Unique corporate customer identifier
+        """
         super().__init__(first_name, last_name, username, password, 
                         cust_address, cust_balance, max_owing, corporate_cust_id)
         self.discount_rate = discount_rate
@@ -603,9 +688,16 @@ class CorporateCustomer(Customer):
         return base_str[:-1] + f"\nDiscount Rate: {self.discount_rate:.0%}\n"
 
     def can_place_order(self, order_amount: Decimal) -> bool:
-        """Check if corporate customer can place order based on total amount and max owing limit"""
+        """Check if corporate customer can place order based on total amount and max owing limit
+        
+        Args:
+            order_amount (Decimal): Amount of the potential order
+            
+        Returns:
+            bool: True if customer can place order, False otherwise
+        """
         try:
-            with open('data/corporate_customers.pkl', 'rb') as file:  # 改用corporate文件
+            with open('data/corporate_customers.pkl', 'rb') as file:
                 customers = pickle.load(file)
                 customer = customers.get(self.cust_id)
                 if customer:
@@ -620,90 +712,102 @@ class CorporateCustomer(Customer):
         except Exception as e:
             print(f"Error checking order possibility: {e}")
             return False
-
+        
     def check_out_with_payment(self, items: List['Item'], delivery_method: DeliveryMethod,
-                          payment_method: str, *, 
-                          # credit card parameters
-                          card_number: str = None,
-                          card_type: str = None, 
-                          card_expiry_date: date = None,
-                          cvv: str = None,
-                          card_holder: str = None,
-                          # debit card parameters
-                          bank_name: str = None,
-                          debit_card_num: str = None) -> bool:
-        """Process checkout with immediate payment for corporate customer"""
-        try:
-            # 1. 创建订单
-            order = Order(
-                order_customer=self,
-                order_date=date.today(),
-                delivery_method=delivery_method
-            )
-            order.set_items(items)
+                            payment_method: str, *, 
+                            card_number: str = None,
+                            card_type: str = None, 
+                            card_expiry_date: date = None,
+                            cvv: str = None,
+                            card_holder: str = None,
+                            bank_name: str = None,
+                            debit_card_num: str = None) -> bool:
+            """Process checkout with immediate payment for corporate customer
+            
+            Args:
+                items (List[Item]): List of items to purchase
+                delivery_method (DeliveryMethod): Pickup or delivery
+                payment_method (str): Payment method to use
+                Optional card payment parameters (see make_payment method)
+                
+            Returns:
+                bool: True if checkout successful, False otherwise
+            """
+            try:
+                # Create order
+                order = Order(
+                    order_customer=self,
+                    order_date=date.today(),
+                    delivery_method=delivery_method
+                )
+                order.set_items(items)
 
-            # 2. 验证订单金额
-            if not self.can_place_order(order.total_amount):
-                print("Order amount exceeds available credit limit for corporate customer")
+                # Verify order amount
+                if not self.can_place_order(order.total_amount):
+                    print("Order amount exceeds available credit limit for corporate customer")
+                    return False
+
+                # Process payment
+                if payment_method == "account":
+                    if not self.charge_to_account(order.total_amount):
+                        return False
+                elif payment_method == "credit":
+                    if not self.make_payment(
+                        payment_amount=order.total_amount,
+                        payment_date=date.today(),
+                        payment_method=payment_method,
+                        card_number=card_number,
+                        card_type=card_type,
+                        card_expiry_date=card_expiry_date,
+                        cvv=cvv,
+                        card_holder=card_holder
+                    ):
+                        return False
+                else:  # debit
+                    if not self.make_payment(
+                        payment_amount=order.total_amount,
+                        payment_date=date.today(),
+                        payment_method=payment_method,
+                        bank_name=bank_name,
+                        debit_card_num=debit_card_num
+                    ):
+                        return False
+
+                # Save order
+                with open('data/orders.pkl', 'rb') as file:
+                    orders = pickle.load(file)
+                with open('data/corporate_customers.pkl', 'rb') as file:
+                    customers = pickle.load(file)
+
+                # Update order status
+                order.order_status = OrderStatus.PENDING
+                self.list_of_orders.append(order)
+                orders[order.order_number] = order
+                customers[self.cust_id] = self
+
+                # Save updates
+                with open('data/orders.pkl', 'wb') as file:
+                    pickle.dump(orders, file)
+                with open('data/corporate_customers.pkl', 'wb') as file:
+                    pickle.dump(customers, file)
+
+                print(f"Corporate customer order {order.order_number} created and paid successfully")
+                print(f"Applied discount rate: {self.discount_rate:.0%}")
+                return True
+
+            except Exception as e:
+                print(f"Error during corporate checkout and payment: {e}")
                 return False
-
-            # 3. 处理支付
-            if payment_method == "account":
-                # 账户支付
-                if not self.charge_to_account(order.total_amount):
-                    return False
-            elif payment_method == "credit":
-                # 信用卡支付
-                if not self.make_payment(
-                    payment_amount=order.total_amount,
-                    payment_date=date.today(),
-                    payment_method=payment_method,
-                    card_number=card_number,
-                    card_type=card_type,
-                    card_expiry_date=card_expiry_date,
-                    cvv=cvv,
-                    card_holder=card_holder
-                ):
-                    return False
-            else:  # debit
-                # 借记卡支付
-                if not self.make_payment(
-                    payment_amount=order.total_amount,
-                    payment_date=date.today(),
-                    payment_method=payment_method,
-                    bank_name=bank_name,
-                    debit_card_num=debit_card_num
-                ):
-                    return False
-
-            # 4. 保存订单
-            with open('data/orders.pkl', 'rb') as file:
-                orders = pickle.load(file)
-            with open('data/corporate_customers.pkl', 'rb') as file:  # 这里改为corporate
-                customers = pickle.load(file)
-
-            # 5. 更新订单状态
-            order.order_status = OrderStatus.PENDING
-            self.list_of_orders.append(order)
-            orders[order.order_number] = order
-            customers[self.cust_id] = self
-
-            # 6. 保存更新
-            with open('data/orders.pkl', 'wb') as file:
-                pickle.dump(orders, file)
-            with open('data/corporate_customers.pkl', 'wb') as file:  # 这里改为corporate
-                pickle.dump(customers, file)
-
-            print(f"Corporate customer order {order.order_number} created and paid successfully")
-            print(f"Applied discount rate: {self.discount_rate:.0%}")
-            return True
-
-        except Exception as e:
-            print(f"Error during corporate checkout and payment: {e}")
-            return False
         
     def charge_to_account(self, amount: Decimal) -> bool:
-        """Charge amount to corporate customer account"""
+        """Charge amount to corporate customer account
+        
+        Args:
+            amount (Decimal): Amount to charge
+            
+        Returns:
+            bool: True if charge successful, False otherwise
+        """
         try:
             with open('data/corporate_customers.pkl', 'rb') as file:
                 customers = pickle.load(file)
@@ -722,71 +826,40 @@ class CorporateCustomer(Customer):
             print(f"Error charging to corporate account: {e}")
             return False
 
-     #------------------后续需要删除, 只用来测试信息是否正确------------------   
-    def view_current_orders(self) -> List['Order']:
-            """View corporate customer's current (pending) orders"""
-            try:
-                with open('data/orders.pkl', 'rb') as file:
-                    orders = pickle.load(file)
-                    current_orders = [
-                        order for order in orders.values()
-                        if order.order_customer.cust_id == self.cust_id 
-                        and order.order_status == OrderStatus.PENDING
-                    ]
-                    print(f"\nCurrent orders for corporate customer {self.cust_id}:")
-                    for order in current_orders:
-                        print(f"\n{order}")
-                    return current_orders
-            except Exception as e:
-                print(f"Error viewing current orders: {e}")
-                return []
-    #------------------后续需要删除, 只用来测试信息是否正确------------------
-    def view_previous_orders(self) -> List['Order']:
-        """View corporate customer's fulfilled orders"""
-        try:
-            with open('data/orders.pkl', 'rb') as file:
-                orders = pickle.load(file)
-                previous_orders = [
-                    order for order in orders.values()
-                    if order.order_customer.cust_id == self.cust_id 
-                    and order.order_status == OrderStatus.FULFILLED
-                ]
-                print(f"\nPrevious orders for corporate customer {self.cust_id}:")
-                for order in previous_orders:
-                    print(f"\n{order}")
-                return previous_orders
-        except Exception as e:
-            print(f"Error viewing previous orders: {e}")
-            return []
-
+class OrderStatus(Enum):
+    """Enum for order status"""
+    PENDING = "pending"
+    FULFILLED = "fulfilled"
 
 class Payment:
     payment_id = 1000
+    
     def __init__(self, *, payment_amount: Decimal, payment_date: date):
-        """Initialize Payment with keyword arguments
+        """Initialize Payment
+        
         Args:
-            payment_amount: Amount of payment
-            payment_date: Date of payment
+            payment_amount (Decimal): Amount of payment
+            payment_date (date): Date of payment
         """
         self.payment_id = f"PAY{Payment.payment_id}"
         Payment.payment_id += 1
         self.payment_amount = Decimal(str(payment_amount))
         self.payment_date = payment_date
 
-#==================fianal version==================
 class CreditCardPayment(Payment):
     def __init__(self, *, payment_amount: Decimal, payment_date: date,
                  card_number: str, card_type: str, card_expiry_date: date,
                  cvv: str, card_holder: str):
-        """Initialize CreditCardPayment with keyword arguments
+        """Initialize CreditCardPayment
+        
         Args:
-            payment_amount: Amount of payment
-            payment_date: Date of payment
-            card_number: Credit card number
-            card_type: Type of credit card
-            card_expiry_date: Card expiry date
-            cvv: Card verification value
-            card_holder: Name of the card holder
+            payment_amount (Decimal): Amount of payment
+            payment_date (date): Date of payment
+            card_number (str): Credit card number
+            card_type (str): Type of credit card
+            card_expiry_date (date): Card expiry date
+            cvv (str): Card verification value
+            card_holder (str): Name of the card holder
         """
         super().__init__(payment_amount=payment_amount, payment_date=payment_date)
         self.card_number = card_number
@@ -795,32 +868,32 @@ class CreditCardPayment(Payment):
         self.cvv = cvv
         self.card_holder = card_holder
 
-#==================fianal version==================
 class DebitCardPayment(Payment):
     def __init__(self, *, payment_amount: Decimal, payment_date: date,
                  bank_name: str, debit_card_num: str):
-        """Initialize DebitCardPayment with keyword arguments
+        """Initialize DebitCardPayment
+        
         Args:
-            payment_amount: Amount of payment
-            payment_date: Date of payment
-            bank_name: Name of the bank
-            debit_card_num: Debit card number
+            payment_amount (Decimal): Amount of payment
+            payment_date (date): Date of payment
+            bank_name (str): Name of the bank
+            debit_card_num (str): Debit card number
         """
         super().__init__(payment_amount=payment_amount, payment_date=payment_date)
         self.bank_name = bank_name
         self.debit_card_num = debit_card_num
 
-#==================fianal version==================
-class OrderStatus(Enum):
-    PENDING = "pending"
-    FULFILLED = "fulfilled"
-
-class DeliveryMethod(Enum):
-    PICKUP = "pickup"
-    DELIVERY = "delivery"
 class Order:
     order_id = 1000
+    
     def __init__(self, order_customer: 'Customer', order_date: date, delivery_method: DeliveryMethod):
+        """Initialize an order
+        
+        Args:
+            order_customer (Customer): Customer placing the order
+            order_date (date): Date of order
+            delivery_method (DeliveryMethod): Method of delivery
+        """
         self.order_number = f"ORD{Order.order_id}"
         Order.order_id += 1
         self.order_customer = order_customer
@@ -829,48 +902,45 @@ class Order:
         self.list_of_items: List[Item] = []
         self.delivery_method = delivery_method
         self.delivery_fee = DELIVERY_FEE if delivery_method == DeliveryMethod.DELIVERY else Decimal('0.00')
-        self.subtotal = Decimal('0.00')  # 商品总价
-        self.discount = Decimal('0.00')  # 企业客户折扣金额
-        self.sales_amount = Decimal('0.00')  # 实际销售额
-        self.total_amount = Decimal('0.00')  # 总金额
+        self.subtotal = Decimal('0.00')  # Total before discount
+        self.discount = Decimal('0.00')  # Corporate customer discount amount
+        self.sales_amount = Decimal('0.00')  # After discount
+        self.total_amount = Decimal('0.00')  # Final total including delivery
 
     def __str__(self) -> str:
         """String representation of the order"""
-        # Initialize a list of lines with main order information
         lines = [
-            f"Order Number: {self.order_number}",       # Order number
-            f"Customer: {self.order_customer}",         # Customer information
-            f"Order Date: {self.order_date}",           # Order date
-            f"Status: {self.order_status.value}",       # Order status
-            f"Delivery Method: {self.delivery_method.value}",  # Delivery method
-            f"Delivery Fee: ${self.delivery_fee:.2f}",  # Delivery fee (formatted to 2 decimal places)
-            "\nItems List:"                             # Items list heading
+            f"Order Number: {self.order_number}",
+            f"Customer: {self.order_customer}",
+            f"Order Date: {self.order_date}",
+            f"Status: {self.order_status.value}",
+            f"Delivery Method: {self.delivery_method.value}",
+            f"Delivery Fee: ${self.delivery_fee:.2f}",
+            "\nItems List:"
         ]
         
-        # If there are items in the order, format each item with indentation
         if self.list_of_items:
             for item in self.list_of_items:
-                # Split each item string into lines and add indentation for readability
                 item_lines = str(item).split('\n')
                 lines.extend(f"    {line}" for line in item_lines)
         else:
-            # If no items, indicate that the list is empty
             lines.append("    No items")
         
-        # Add the financial summary at the end
         lines.extend([
-            f"\nSubtotal: ${self.subtotal:.2f}",        # Subtotal amount
-            f"Discount: ${self.discount:.2f}",          # Discount amount
-            f"Sales Amount: ${self.sales_amount:.2f}",  # Sales amount after discount
-            f"Total Amount: ${self.total_amount:.2f}"   # Total amount due
+            f"\nSubtotal: ${self.subtotal:.2f}",
+            f"Discount: ${self.discount:.2f}",
+            f"Sales Amount: ${self.sales_amount:.2f}",
+            f"Total Amount: ${self.total_amount:.2f}"
         ])
         
-        # Join all lines with newlines for a well-formatted output
         return '\n'.join(lines)
-        
 
     def set_items(self, items: List['Item']):
-        """Set all order items at once and calculate amounts"""
+        """Set all order items at once and calculate amounts
+        
+        Args:
+            items (List[Item]): List of items to add to order
+        """
         self.list_of_items = items
         self.calculate_all_amounts()
 
@@ -900,123 +970,125 @@ class Order:
         self.calculate_sales_amount()
         self.calculate_total_amount()
 
-    def __str__(self):
-        """String representation of the order"""
-        order_str = [
-            f"Order Number: {self.order_number}",
-            f"Customer: {self.order_customer.first_name} {self.order_customer.last_name}",
-            f"Date: {self.order_date}",
-            f"Status: {self.order_status.value}",
-            f"Delivery Method: {self.delivery_method.value}",
-            "\nItems:"
-        ]
-        
-        for item in self.list_of_items:
-            if isinstance(item, PremadeBox):
-                order_str.append(f"- {item.item_name} ({item.box_size}) (${item.price})")
-                order_str.append("  Contents:")
-                for content_item in item.box_content:
-                    order_str.append(f"    * {content_item.item_name}")
-            else:
-                order_str.append(f"- {item.item_name} x {item.quantity} (${item.total_price})")
-        
-        order_str.extend([
-            f"\nSubtotal: ${self.subtotal}",
-            f"Discount: ${self.discount}" if self.discount > 0 else "",
-            f"Sales Amount: ${self.sales_amount}",
-            f"Delivery Fee: ${self.delivery_fee}" if self.delivery_method == DeliveryMethod.DELIVERY else "",
-            f"Total Amount: ${self.total_amount}"
-        ])
-        
-        return "\n".join([s for s in order_str if s != ""])  # 移除空字符串
-
 class Item(ABC):
     def __init__(self, name: str):
-        # 商品的名字(/商品的类型)
+        """Initialize an item
+        
+        Args:
+            name (str): Name of the item
+        """
         self.item_name = name
-        # 商品的总价
         self.total_price = Decimal('0.00')
 
-    @abstractmethod # 计算商品的总价
+    @abstractmethod
     def calculate_total(self):
+        """Calculate total price of the item"""
         pass
-    
 
 class Veggie(Item):
     def __init__(self, veg_name: str):
+        """Initialize a vegetable item
+        
+        Args:
+            veg_name (str): Name of the vegetable
+        """
         super().__init__(veg_name)
-        # self.veg_name = veg_name
     
     def __str__(self):
+        """String representation of vegetable item"""
         return f"Name: {self.item_name}\n"
-
 
 class WeightedVeggie(Veggie):
     def __init__(self, veg_name: str, weight: Decimal, weight_per_kilo: Decimal):
+        """Initialize a weighted vegetable item
+        
+        Args:
+            veg_name (str): Name of the vegetable
+            weight (Decimal): Weight in kilograms
+            weight_per_kilo (Decimal): Price per kilogram
+        """
         super().__init__(veg_name)
-        # 商品的数量
         self.weight = Decimal(str(weight))
-        # 商品的单价
         self.price_per_kilo = Decimal(str(weight_per_kilo))
 
-    # 计算商品的总价
     def calculate_total(self):
+        """Calculate total price based on weight"""
         self.total_price = self.weight * self.price_per_kilo
 
-
     def __str__(self):
+        """String representation of weighted vegetable item"""
         return super().__str__() + f"Weight: {self.weight} kg\nPrice per kilo: ${self.price_per_kilo}"
-
-
+    
 class PackVeggie(Veggie):
     def __init__(self, veg_name: str, num_of_pack: int, price_per_pack: Decimal):
+        """Initialize a pack vegetable item
+        
+        Args:
+            veg_name (str): Name of the vegetable
+            num_of_pack (int): Number of packs
+            price_per_pack (Decimal): Price per pack
+        """
         super().__init__(veg_name)
-        # 商品的数量
         self.num_of_pack = num_of_pack
-        # 商品的单价
         self.price_per_pack = Decimal(str(price_per_pack))
 
-    # 计算商品的总价
     def calculate_total(self):
+        """Calculate total price based on number of packs"""
         self.total_price = self.num_of_pack * self.price_per_pack
 
     def __str__(self):
+        """String representation of pack vegetable item"""
         return super().__str__() + f"Number of packs: {self.num_of_pack}\nPrice per pack: ${self.price_per_pack}"
 
 class UnitPriceVeggie(Veggie):
-    def __init__(self, veg_name: str, quantity: int,price_per_unit: Decimal):
+    def __init__(self, veg_name: str, quantity: int, price_per_unit: Decimal):
+        """Initialize a unit-priced vegetable item
+        
+        Args:
+            veg_name (str): Name of the vegetable
+            quantity (int): Number of units
+            price_per_unit (Decimal): Price per unit
+        """
         super().__init__(veg_name)
-        # 商品的数量
         self.quantity = quantity
-        # 商品的单价
         self.price_per_unit = Decimal(str(price_per_unit))
     
-    # 计算商品的总价
     def calculate_total(self):
+        """Calculate total price based on quantity"""
         self.total_price = self.quantity * self.price_per_unit
 
     def __str__(self):
+        """String representation of unit-priced vegetable item"""
         return super().__str__() + f"Quantity: {self.quantity}\nPrice per unit: ${self.price_per_unit}"
 
 class PremadeBox(Item):
-    def __init__(self, box_size: str, quantity:int, price: Decimal):
+    def __init__(self, box_size: str, quantity: int, price: Decimal):
+        """Initialize a premade box item
+        
+        Args:
+            box_size (str): Size/name of the box
+            quantity (int): Number of boxes
+            price (Decimal): Price per box
+        """
         super().__init__(box_size)
-        # box的内容
         self.box_content: List['Item'] = []
-        # box的数量
         self.quantity = quantity
-        # box的价格
         self.price = price
 
-    # 设置商品的content list
     def set_content(self, content: List['Item']):
+        """Set the contents of the box
+        
+        Args:
+            content (List[Item]): List of items in the box
+        """
         self.box_content = content
 
-    # 计算商品的总价
     def calculate_total(self):
+        """Calculate total price based on quantity"""
         self.total_price = self.quantity * self.price
 
     def __str__(self):
+        """String representation of premade box item"""
         return (f"Box Size: {self.item_name}\n"
                 f"Quantity: {self.quantity}\n"
                 f"Price: ${self.price}\n"
