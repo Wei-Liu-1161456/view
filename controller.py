@@ -159,14 +159,14 @@ class Company:
         text += "\n All Vegetables:\n"
         text += "\n".join([f"• {item}" for item in self.all_veggies_list])
         
-        text += "\n\ Pre-made Boxes:\n"
+        text += "\n\n Pre-made Boxes:\n"
         text += f"\n Small Box (${float(self.smallbox_default_dict['price']):.2f})\n"
         text += f"  Contents: {', '.join(self.smallbox_default_dict['contents'])}"
         
-        text += f"\n\n Medium Box (${float(self.mediumbox_default_dict['price']):.2f})\n"
+        text += f"\n Medium Box (${float(self.mediumbox_default_dict['price']):.2f})\n"
         text += f"  Contents: {', '.join(self.mediumbox_default_dict['contents'])}"
         
-        text += f"\n\n Large Box (${float(self.largebox_default_dict['price']):.2f})\n"
+        text += f"\n Large Box (${float(self.largebox_default_dict['price']):.2f})\n"
         text += f"  Contents: {', '.join(self.largebox_default_dict['contents'])}"
 
         return text
@@ -174,26 +174,30 @@ class Company:
     def staff_current_orders(self):
         """Allow staff to view and manage current orders"""
         return self.user.show_current_orders()
+    
+    def staff_fullfill_order(self, order_id):
+        """Process and fulfill customer orders"""
+        return self.user.fulfill_order(order_id)
 
     def staff_previous_orders(self):
         """Allow staff to view previous orders"""
-        pass
+        return self.user.show_previous_orders()
 
     def staff_all_customers(self):
-        """Allow staff to view all customer information"""
-        pass
+        """Allow staff to view all customers"""
+        return self.user.show_all_customers()
 
-    def staff_sales_reports(self):
+    def staff_sales_report(self, start_date, end_date):
         """Generate and view sales reports"""
-        pass
+        return self.user.show_sales_report(start_date, end_date)
 
     def staff_popular_items(self):
-        """View and analyze popular items"""
-        pass
+        """View popular items"""
+        return self.user.show_popular_products()
 
-    def staff_fulfill_order(self):
+    def staff_fulfill_order(self, order_id):
         """Process and fulfill customer orders"""
-        pass
+        return self.user.fulfill_order(order_id)
 
     # Customer Methods
     def customer_check_out_order(self):

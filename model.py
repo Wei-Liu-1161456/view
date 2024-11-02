@@ -1,5 +1,5 @@
 from datetime import date
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Any
 from decimal import Decimal
 from abc import ABC, abstractmethod
 import pickle
@@ -47,167 +47,266 @@ class Staff(Person):
             else:
                 print(f"- {item.item_name} x {item.quantity} (${item.total_price})")
 
-    def show_current_orders(self) -> List['Order']:
+
+    def show_current_orders(self) -> Dict[str, Dict[str, Any]]:
         """Show all orders with 'pending' status"""
         try:
             with open('data/orders.pkl', 'rb') as file:
                 orders = pickle.load(file)
-            current_orders = [order for order in orders.values() 
-                            if order.order_status == OrderStatus.PENDING]
-            
-            # Build the output string
-            output = "=== Current Orders ===\n"
-            print(orders)
-            
-            for order in current_orders:
-                output += f"\nOrder Number: {order.order_number}\n"
-                output += f"Customer: {order.order_customer.first_name} {order.order_customer.last_name}\n"
-                output += f"Date: {order.order_date}\n"
+                # first filter out orders with pending status
+                pending_orders = {k: v for k, v in orders.items() 
+                                if v.order_status == OrderStatus.PENDING}
                 
-                # Convert _print_order_items to string format
-                items_str = self._get_order_items_string(order)
-                output += items_str
+                # and then create the result dictionary
+                current_orders = {
+                    order.order_number: {
+                        "Customer": f"{order.order_customer.first_name} {order.order_customer.last_name}",
+                        "Date": order.order_date,
+                        "Status": order.order_status.value,
+                        "Items": self._get_order_items_string(order),
+                        "Subtotal": order.subtotal,
+                        "Delivery Fee": order.delivery_fee,
+                        "Total Amount": order.total_amount
+                    } 
+                    for order in pending_orders.values()
+                }
                 
-                output += f"Subtotal: ${order.subtotal}\n"
-                output += f"Delivery Fee: ${order.delivery_fee}\n"
-                output += f"Total Amount: ${order.total_amount}\n"
-                output += "-" * 40 + "\n"  # Add a separator line between orders
-            
-            return output, current_orders
+                return current_orders
         except Exception as e:
-            return f"Error loading orders: {str(e)}", []
+            return {"Error": f"Error loading orders: {str(e)}"}
 
     def _get_order_items_string(self, order) -> str:
         """Helper method to format order items as string"""
-        items_str = "Order Items:\n"
-        for item in order.order_items:
+        items_str = ""
+        for item in order.list_of_items:
             if hasattr(item, 'quantity'):
-                items_str += f"- {item.name} x {item.quantity}\n"
+                items_str += f"{item.item_name} x {item.quantity} "
             else:
-                items_str += f"- {item.name}\n"
+                items_str += f"{item.item_name} "
         return items_str
 
-    def show_previous_orders(self) -> List['Order']:
+    def show_previous_orders(self) -> Dict[str, Dict[str, Any]]:
         """Show all orders with 'fulfilled' status"""
         try:
             with open('data/orders.pkl', 'rb') as file:
                 orders = pickle.load(file)
-            previous_orders = [order for order in orders.values() 
-                             if order.order_status == OrderStatus.FULFILLED]
-            
-            print("\n=== Previous Orders ===")
-            for order in previous_orders:
-                print(f"\nOrder Number: {order.order_number}")
-                print(f"Customer: {order.order_customer.first_name} {order.order_customer.last_name}")
-                print(f"Date: {order.order_date}")
-                print(f"Items:")
-                for item in order.list_of_items:
-                    print(f"- {item.item_name} x {item.quantity}")
-                print(f"Subtotal: ${order.subtotal}")
-                print(f"Delivery Fee: ${order.delivery_fee}")
-                print(f"Total Amount: ${order.total_amount}")
-            
-            return previous_orders
+                # 先筛选出 fulfilled 状态的订单
+                fulfilled_orders = {k: v for k, v in orders.items() 
+                                if v.order_status == OrderStatus.FULFILLED}
+                
+                # 然后创建结果字典
+                previous_orders = {
+                    order.order_number: {
+                        "Customer": f"{order.order_customer.first_name} {order.order_customer.last_name}",
+                        "Date": order.order_date,
+                        "Status": order.order_status.value,
+                        "Items": self._get_order_items_string(order),
+                        "Subtotal": order.subtotal,
+                        "Delivery Fee": order.delivery_fee,
+                        "Total Amount": order.total_amount
+                    } 
+                    for order in fulfilled_orders.values()
+                }
+                
+                return previous_orders
         except Exception as e:
-            print(f"Error loading previous orders: {e}")
-            return []
+            return {"Error": f"Error loading orders: {str(e)}"}
 
-    def show_all_customers(self) -> Dict[str, List['Customer']]:
-        """Show all customers (both private and corporate)"""
+    def show_all_customers(self) -> str:
+        """Show all customers (both private and corporate) and return a formatted string for display.
+        
+        Returns:
+            A formatted string containing all customer information.
+        """
         try:
-            # 加载私人客户
+            # Load private customers
             with open('data/private_customers.pkl', 'rb') as file:
                 private_customers = pickle.load(file)
             
-            # 加载企业客户
+            # Load corporate customers
             with open('data/corporate_customers.pkl', 'rb') as file:
                 corporate_customers = pickle.load(file)
             
-            print("\n=== Private Customers ===")
+            # Initialize formatted strings for display
+            formatted_customers = "\n=== Private Customers ===\n"
             for cust_id, customer in private_customers.items():
-                print(f"\nCustomer ID: {cust_id}")
-                print(f"Name: {customer.first_name} {customer.last_name}")
-                print(f"Address: {customer.cust_address}")
-                print(f"Balance: ${customer.cust_balance}")
-                print(f"Max Owing: ${customer.max_owing}")
+                formatted_customers += (
+                    f"\nCustomer ID: {cust_id}\n"
+                    f"Name: {customer.first_name} {customer.last_name}\n"
+                    f"Address: {customer.cust_address}\n"
+                    f"Balance: ${customer.cust_balance}\n"
+                    f"Max Owing: ${customer.max_owing}\n"
+                )
             
-            print("\n=== Corporate Customers ===")
+            formatted_customers += "\n=== Corporate Customers ===\n"
             for cust_id, customer in corporate_customers.items():
-                print(f"\nCustomer ID: {cust_id}")
-                print(f"Name: {customer.first_name} {customer.last_name}")
-                print(f"Address: {customer.cust_address}")
-                print(f"Balance: ${customer.cust_balance}")
-                print(f"Max Owing: ${customer.max_owing}")
-                print(f"Discount Rate: {customer.discount_rate * 100}%")
+                formatted_customers += (
+                    f"\nCustomer ID: {cust_id}\n"
+                    f"Name: {customer.first_name} {customer.last_name}\n"
+                    f"Address: {customer.cust_address}\n"
+                    f"Balance: ${customer.cust_balance}\n"
+                    f"Max Owing: ${customer.max_owing}\n"
+                    f"Discount Rate: {customer.discount_rate * 100}%\n"
+                )
             
-            return {
-                'private': list(private_customers.values()),
-                'corporate': list(corporate_customers.values())
-            }
+            # Return the combined formatted string
+            return formatted_customers
         except Exception as e:
-            print(f"Error loading customers: {e}")
-            return {'private': [], 'corporate': []}
+            # Return an error message if loading fails
+            return "Error loading customers."
 
-    def show_sales_report(self, start_date: date, end_date: date) -> Tuple[Decimal, List['Order']]:
-        """Show sales report for a specific date range"""
+    def show_sales_report(self, start_date: date, end_date: date) -> str:
+        """Generate a sales report for a specific date range.
+        
+        This method loads orders from a pickle file, filters them based on the date range,
+        and generates a formatted report string containing order details and total sales.
+        
+        Args:
+            start_date (date): Start date of the report period
+            end_date (date): End date of the report period
+            
+        Returns:
+            str: Formatted sales report containing:
+                - Report header with date range
+                - Total sales amount
+                - Details for each order in the date range:
+                    - Order number
+                    - Customer information
+                    - Order date
+                    - Order items
+                    - Pricing details (original total, discount if applicable, final amount)
+                    
+        Note:
+            For corporate customers, additional discount information is included.
+        """
         try:
+            # Load orders from pickle file
             with open('data/orders.pkl', 'rb') as file:
                 orders = pickle.load(file)
             
+            # Filter orders within the date range
             valid_orders = [
                 order for order in orders.values()
                 if start_date <= order.order_date <= end_date
             ]
             
+            # Calculate total sales for the period
             total_sales = sum(order.sales_amount for order in valid_orders)
             
-            print(f"\n=== Sales Report ({start_date} to {end_date}) ===")
-            print(f"Total Sales: ${total_sales}")
-            for order in valid_orders:
-                print(f"\nOrder Number: {order.order_number}")
-                print(f"Customer: {order.order_customer.first_name} {order.order_customer.last_name}")
-                print(f"Date: {order.order_date}")
-                self._print_order_items(order)
-                if isinstance(order.order_customer, CorporateCustomer):
-                    print(f"Original Total: ${order.subtotal}")
-                    print(f"Discount ({order.order_customer.discount_rate * 100}%): ${order.discount}")
-                print(f"Final Sales Amount: ${order.sales_amount}")
+            # Initialize report string
+            report = []
+            report.append(f"=== Sales Report ({start_date} to {end_date}) ===")
+            report.append(f"Total Sales: ${total_sales}\n")
             
-            return total_sales, valid_orders
+            # Add details for each order
+            for order in valid_orders:
+                # Order header information
+                report.append(f"Order Number: {order.order_number}")
+                report.append(f"Customer: {order.order_customer.first_name} {order.order_customer.last_name}")
+                report.append(f"Date: {order.order_date}")
+                
+                # Add order items
+                items_str = self._get_order_items_str(order)  # Assuming you'll create this helper method
+                report.append(items_str)
+                
+                # Add pricing details
+                if isinstance(order.order_customer, CorporateCustomer):
+                    report.append(f"Original Total: ${order.subtotal}")
+                    report.append(f"Discount ({order.order_customer.discount_rate * 100}%): ${order.discount}")
+                report.append(f"Final Sales Amount: ${order.sales_amount}\n")
+            
+            # Join all report lines with newlines
+            print('\'n'.join(report))
+            return '\n'.join(report)
+            
         except Exception as e:
-            print(f"Error generating sales report: {e}")
-            return Decimal('0.00'), []
+            error_msg = f"Error generating sales report: {e}"
+            return error_msg
 
-    def show_popular_products(self) -> List[Tuple[str, int]]:
-        """Show popular products based on quantity sold"""
+    def _get_order_items_str(self, order) -> str:
+        """Helper method to format order items information.
+        
+        Args:
+            order: Order object containing items information
+            
+        Returns:
+            str: Formatted string containing items details
+        """
+        items_lines = []
+        items_lines.append("Items:")
+        for item in order.list_of_items:
+            items_lines.append(f"  - {item.quantity}x {item.product.name} (${item.price} each)")
+        return '\n'.join(items_lines)
+
+    def show_popular_products(self) -> str:
+        """Show popular products based on quantity sold across different categories (veggies and premade boxes).
+        
+        Returns:
+            A formatted string listing the popular products and their total quantities sold, sorted from high to low.
+        """
         try:
+            # Load orders from the pickle file
             with open('data/orders.pkl', 'rb') as file:
                 orders = pickle.load(file)
             
-            # 统计每个商品的销售数量
-            product_quantities = {}
+            # Initialize dictionaries to keep track of product quantities sold
+            veggie_sales = {}     # For all veggie products (including those in premade boxes)
+            premade_box_sales = {} # For premade boxes
+            
             for order in orders.values():
                 for item in order.list_of_items:
-                    product_quantities[item.item_name] = (
-                        product_quantities.get(item.item_name, 0) + 
-                        item.quantity
-                    )
+                    # Check if item is a veggie product
+                    if isinstance(item, WeightedVeggie) or isinstance(item, UnitPriceVeggie) or isinstance(item, PackVeggie):
+                        item_name = item.item_name
+                        if isinstance(item, WeightedVeggie):
+                            veggie_sales[item_name] = veggie_sales.get(item_name, 0) + item.weight
+                        elif isinstance(item, UnitPriceVeggie):
+                            veggie_sales[item_name] = veggie_sales.get(item_name, 0) + item.quantity
+                        elif isinstance(item, PackVeggie):
+                            veggie_sales[item_name] = veggie_sales.get(item_name, 0) + item.num_of_pack
+                    
+                    # Check if the order contains premade boxes
+                    if isinstance(item, PremadeBox):
+                        box_name = item.item_name
+                        # Count the premade box itself
+                        premade_box_sales[box_name] = premade_box_sales.get(box_name, 0) + item.quantity
+                        
+                        # Count the contents of the premade box
+                        for content in item.box_content:
+                            content_name = content.item_name
+                            if isinstance(content, WeightedVeggie):
+                                veggie_sales[content_name] = veggie_sales.get(content_name, 0) + content.weight
+                            elif isinstance(content, UnitPriceVeggie):
+                                veggie_sales[content_name] = veggie_sales.get(content_name, 0) + content.quantity
+                            elif isinstance(content, PackVeggie):
+                                veggie_sales[content_name] = veggie_sales.get(content_name, 0) + content.num_of_pack
+
+            # Sort veggie sales from high to low
+            sorted_veggie_sales = sorted(veggie_sales.items(), key=lambda x: x[1], reverse=True)
             
-            # 按销售数量排序
-            popular_items = sorted(
-                product_quantities.items(),
-                key=lambda x: x[1],
-                reverse=True
-            )
+            # Sort premade box sales from high to low
+            sorted_premade_box_sales = sorted(premade_box_sales.items(), key=lambda x: x[1], reverse=True)
+
+            # Prepare formatted strings for each category
+            formatted_products = "\n=== Popular Products by Category ===\n"
             
-            print("\n=== Popular Products ===")
-            for item_name, quantity in popular_items:
-                print(f"{item_name}: {quantity} units sold")
-            
-            return popular_items
+            # Format veggie sales
+            formatted_products += "\n[Veggie Products]\n"
+            for item_name, total_quantity in sorted_veggie_sales:
+                formatted_products += f"{item_name}: {total_quantity:.2f} sold\n"
+
+            # Format premade box sales
+            formatted_products += "\n[Premade Boxes]\n"
+            for box_name, quantity in sorted_premade_box_sales:
+                formatted_products += f"{box_name}: {quantity} sold\n"
+
+            # Return the formatted string for display
+            return formatted_products
+        
         except Exception as e:
-            print(f"Error generating popular products report: {e}")
-            return []
+            # Return an error message if there is an exception during processing
+            return f"Error generating popular products report: {e}"
+
 
     def fulfill_order(self, order_number: str) -> bool:
         """Update order status from pending to fulfilled
@@ -228,7 +327,6 @@ class Staff(Person):
             with open('data/orders.pkl', 'wb') as file:
                 pickle.dump(orders, file)
             
-            print(f"Order {order_number} has been fulfilled")
             return True
         except Exception as e:
             print(f"Error fulfilling order: {e}")

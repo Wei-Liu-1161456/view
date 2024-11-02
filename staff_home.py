@@ -4,72 +4,169 @@ from tkcalendar import DateEntry
 from datetime import datetime, date
 
 class AutoTreeview(ttk.Treeview):
-    def __init__(self, parent, headers, data, mode="readonly", *args, **kwargs):
-        """Initialize Treeview with automatic configuration"""
+    def __init__(self, parent, headers, data, controller=None, mode="readonly", *args, **kwargs):
+        """Initialize Treeview with automatic configuration.
+        
+        Args:
+            parent: The parent widget that will contain this Treeview.
+            headers: List of column headers for the Treeview.
+            data: Initial data to populate the Treeview.
+            controller: Optional controller to handle user interactions.
+            mode: Mode of the Treeview; can be "readonly" or "editable".
+            *args, **kwargs: Additional arguments passed to the parent class.
+        """
         super().__init__(parent, *args, **kwargs)
-        
-        self.mode = mode
-        self["columns"] = headers
-        self.heading("#0", text="", anchor="w")
-        self.column("#0", width=0, stretch=tk.NO)
-        
-        # Configure columns
+
+        self.controller = controller  # Reference to the controller for interaction
+        self.mode = mode  # Mode of the Treeview (readonly/editable)
+        self["columns"] = headers  # Set the columns for the Treeview
+        self.heading("#0", text="", anchor="w")  # Hide the default column
+        self.column("#0", width=0, stretch=tk.NO)  # Configure the hidden column width
+
+        # Configure columns and their properties
         for header in headers:
-            self.heading(header, text=header, anchor="w")
-            self.column(header, anchor="w", stretch=True, width=100)
-        
-        # Insert data
+            self.heading(header, text=header, anchor="w")  # Set header text
+            if header == "Items":  # Special handling for the Items column
+                self.column(header, anchor="w", stretch=True, width=300, minwidth=200)  # Wider width for Items
+            else:
+                self.column(header, anchor="w", stretch=True, width=100)  # Standard width for other columns
+
+        # Initialize tooltip for displaying additional information
+        self.tooltip = None
+        self.bind('<Motion>', self._on_motion)  # Bind mouse motion event for tooltips
+        self.bind('<Leave>', self._on_leave)  # Bind mouse leave event to hide tooltips
+
+        # Insert initial data into the Treeview
         self.update_data(data)
-        
-        # Configure scrollbars
+
+        # Configure vertical scrollbar
         self.scroll_y = ttk.Scrollbar(parent, orient="vertical", command=self.yview)
         self.scroll_y.pack(side=tk.RIGHT, fill=tk.Y)
-        
+
+        # Configure horizontal scrollbar
         self.scroll_x = ttk.Scrollbar(parent, orient="horizontal", command=self.xview)
         self.scroll_x.pack(side=tk.BOTTOM, fill=tk.X)
-        
+
+        # Link scrollbars to the Treeview
         self.config(yscrollcommand=self.scroll_y.set, xscrollcommand=self.scroll_x.set)
-        self.pack(fill=tk.BOTH, expand=True)
-        
-        # Only bind events if mode is editable
+        self.pack(fill=tk.BOTH, expand=True)  # Pack the Treeview to fill the parent widget
+
+        # Only bind events if the Treeview is in editable mode
         if self.mode == "editable":
-            self.bind("<Double-1>", self._on_double_click)
-            self.bind("<Button-3>", self._show_context_menu)
-    
+            self.bind("<Double-1>", self._on_double_click)  # Bind double-click event
+            self.bind("<Button-3>", self._show_context_menu)  # Bind right-click context menu event
+
     def update_data(self, data):
-        """Update treeview with new data"""
-        # Clear existing items
+        """Update the Treeview with new data.
+        
+        Args:
+            data: List of rows, where each row is a list of values to display.
+        """
+        # Clear existing items from the Treeview
         for item in self.get_children():
             self.delete(item)
-        
-        # Insert new data
+
+        # Insert new data into the Treeview
         for row in data:
-            row_values = [str(value) if value is not None else "N/A" for value in row]
-            self.insert("", "end", values=row_values)
-    
+            row_values = []
+            for i, value in enumerate(row):
+                if value is None:
+                    row_values.append("N/A")  # Replace None with "N/A"
+                elif i == 4:  # Special handling for Items column
+                    # No length restriction; insert the full value
+                    row_values.append(str(value))
+                else:
+                    row_values.append(str(value))  # Convert other values to string
+            self.insert("", "end", values=row_values)  # Insert the row into the Treeview
+
+    def _on_motion(self, event):
+        """Handle mouse motion events to show tooltips.
+        
+        Args:
+            event: The mouse event containing position information.
+        """
+        cell = self.identify_row(event.y)  # Identify which row is under the mouse
+        if cell and self.identify_column(event.x) == '#5':  # Check if it's the Items column
+            values = self.item(cell)['values']  # Get values for the identified row
+            if values and len(values) >= 5:  # Ensure Items data exists
+                # Create or update the tooltip if it doesn't exist
+                if not self.tooltip:
+                    self.tooltip = tk.Toplevel()  # Create a new top-level window for the tooltip
+                    self.tooltip.wm_overrideredirect(True)  # Remove window decorations
+                    self.tooltip_label = tk.Label(self.tooltip, justify=tk.LEFT,
+                                                   background="#ffffe0", relief='solid', borderwidth=1)
+                    self.tooltip_label.pack()  # Pack the label into the tooltip window
+
+                # Set tooltip position and content
+                x, y, _, _ = self.bbox(cell, '#5')  # Get the bounding box for the cell
+                x_root = event.x_root + 10  # X position for tooltip
+                y_root = event.y_root + 10  # Y position for tooltip
+                self.tooltip_label.config(text=str(values[4]))  # Set tooltip text to Items value
+                self.tooltip.geometry(f"+{x_root}+{y_root}")  # Position the tooltip
+                self.tooltip.deiconify()  # Show the tooltip
+        elif self.tooltip:
+            self.tooltip.withdraw()  # Hide tooltip if mouse is not over the Items column
+
+    def _on_leave(self, event):
+        """Handle mouse leave events to hide tooltips.
+        
+        Args:
+            event: The mouse event containing position information.
+        """
+        if self.tooltip:
+            self.tooltip.withdraw()  # Hide the tooltip when the mouse leaves
+
     def _on_double_click(self, event):
-        item = self.identify_row(event.y)
+        """Handle double-click events on Treeview items.
+        
+        Args:
+            event: The mouse event containing position information.
+        """
+        item = self.identify_row(event.y)  # Identify the row that was double-clicked
         if item:
-            self._process_item(item)
-    
+            self._process_item(item)  # Process the item
+
     def _show_context_menu(self, event):
-        item = self.identify_row(event.y)
+        """Show a context menu on right-clicking an item in the Treeview.
+        
+        Args:
+            event: The mouse event containing position information.
+        """
+        item = self.identify_row(event.y)  # Identify the row under the mouse
         if item:
-            menu = tk.Menu(self, tearoff=0)
-            menu.add_command(label="Process Order", command=lambda: self._process_item(item))
-            menu.post(event.x_root, event.y_root)
-    
+            menu = tk.Menu(self, tearoff=0)  # Create a context menu
+            menu.add_command(label="Process Order", command=lambda: self._process_item(item))  # Add command to process the order
+            menu.post(event.x_root, event.y_root)  # Display the menu at the mouse position
+
     def _process_item(self, item_id):
-        values = self.item(item_id)["values"]
-        if messagebox.askyesno("Process Order", 
-                             f"Process this order?\n\n"
-                             f"Order ID: {values[0]}\n"
-                             f"Customer: {values[1]}\n"
-                             f"Date: {values[2]}\n"
-                             f"Status: {values[3]}\n"
-                             f"Total: {values[4]}"):
-            self.delete(item_id)
-            messagebox.showinfo("Success", "Order processed successfully!")
+        """Process the item when the order is fulfilled.
+        
+        Args:
+            item_id: The ID of the item to process.
+        """
+        values = self.item(item_id)["values"]  # Get the values of the selected item
+        order_id = values[0]  # Extract the order ID
+
+        # Ask the user to confirm fulfilling the order
+        if messagebox.askyesno(
+            "Fulfill Order", 
+            f"Fulfill this order?\n\n"
+            f"Order ID: {order_id}\n"
+            f"Customer: {values[1]}\n"
+            f"Date: {values[2]}\n"
+            f"Status: {values[3]}\n"
+            f"Items: {values[4]}\n"
+            f"Subtotal: {values[5]}\n"
+            f"Delivery Fee: {values[6]}\n"
+            f"Total: {values[7]}"
+        ):
+            # Call the controller method to process the order
+            success = self.controller.staff_fulfill_order(order_id)
+
+            if success:
+                self.delete(item_id)  # Remove the item from the Treeview
+                messagebox.showinfo("Success", "Order processed successfully!")  # Show success message
+
 
 class DateSelector(ttk.Frame):
     def __init__(self, parent, label_text):
@@ -203,6 +300,12 @@ class StaffHome:
         self.current_frame = None
         self.text_widget = None
         self.current_treeview = None
+        
+        # Add sales report related attributes
+        self.report_frame = None
+        self.report_text = None
+        self.date_selection = None
+        
         self.setup_window()
         self.create_widgets()
         self.login_window = self.root.master
@@ -248,9 +351,9 @@ class StaffHome:
             "All Products": lambda: self.show_text_content("All Products", self.controller.staff_all_products()),
             "Current Orders": lambda: self.show_treeview_content("Current Orders", self.get_current_orders_data(), True),
             "Previous Orders": lambda: self.show_treeview_content("Previous Orders", self.get_previous_orders_data(), False),
-            "All Customers": lambda: self.show_text_content("All Customers", "Customer list will be displayed here"),
-            "Sales Report": self.show_sales_report,
-            "Popular Items": lambda: self.show_text_content("Popular Items", "Popular items will be displayed here")
+            "All Customers": lambda: self.show_text_content("All Customers", self.controller.staff_all_customers()),
+            "Sales Report": lambda: self.staff_sales_reports(),
+            "Popular Items": lambda: self.show_text_content("Popular Items", self.controller.staff_popular_items())
         }
 
         for text, command in self.function_buttons.items():
@@ -279,42 +382,22 @@ class StaffHome:
 
     def get_current_orders_data(self):
         """Get current orders data"""
-        headers = ["Order ID", "Customer", "Date", "Status", "Total"]
-        # Replace this with actual data from controller
-        data = [
-            ("ORD1001", "John Doe", "2024-11-02", "Pending", "$150.00"),
-            ("ORD1002", "Jane Smith", "2024-11-02", "Processing", "$245.50"),
-            ("ORD1003", "Mike Johnson", "2024-11-02", "Pending", "$89.99")
-        ]
+        headers = ["Order ID", "Customer", "Date", "Status", "Items", "Subtotal", "Delivery Fee", "Total Amount"]
+        
+        data = []
+        for order_number, order in self.controller.staff_current_orders().items():
+            data.append((order_number, order["Customer"], order["Date"], order["Status"], 
+                        order["Items"], order["Subtotal"], order["Delivery Fee"], order["Total Amount"]))
         return headers, data
 
     def get_previous_orders_data(self):
         """Get previous orders data"""
-        headers = ["Order ID", "Customer", "Date", "Status", "Total"]
-        # Replace this with actual data from controller
-        data = [
-            ("ORD1000", "Alice Brown", "2024-11-01", "Completed", "$120.00"),
-            ("ORD999", "Bob Wilson", "2024-11-01", "Completed", "$175.25"),
-            ("ORD998", "Carol White", "2024-11-01", "Cancelled", "$0.00")
-        ]
-        return headers, data
-
-    def get_sales_report_data(self, start_date=None, end_date=None):
-        """Get sales report data for the specified date range"""
-        headers = ["Date", "Orders", "Total Sales", "Average Order Value", "Items Sold"]
-        # Replace with actual data from controller based on date range
-        if start_date and end_date:
-            # Example data for specific date range
-            data = [
-                (start_date.strftime("%Y-%m-%d"), "15", "$2,250.00", "$150.00", "45"),
-                (end_date.strftime("%Y-%m-%d"), "12", "$1,800.00", "$150.00", "36")
-            ]
-        else:
-            # Default data
-            data = [
-                ("2024-11-01", "10", "$1,500.00", "$150.00", "30"),
-                ("2024-11-02", "8", "$1,200.00", "$150.00", "24")
-            ]
+        headers = ["Order ID", "Customer", "Date", "Status", "Items", "Subtotal", "Delivery Fee", "Total Amount"]
+        
+        data = []
+        for order_number, order in self.controller.staff_previous_orders().items():
+            data.append((order_number, order["Customer"], order["Date"], order["Status"], 
+                        order["Items"], order["Subtotal"], order["Delivery Fee"], order["Total Amount"]))
         return headers, data
 
     def show_text_content(self, title, content):
@@ -388,12 +471,12 @@ class StaffHome:
             
             headers, rows = data
             mode = "editable" if editable else "readonly"
-            self.current_treeview = AutoTreeview(self.display_frame, headers, rows, mode=mode)
+            self.current_treeview = AutoTreeview(self.display_frame, headers, rows, self.controller, mode=mode)
 
         except Exception as e:
             messagebox.showerror("Error", f"Error displaying content: {str(e)}")
 
-    def show_sales_report(self):
+    def staff_sales_reports(self):
         """Display sales report with date selection"""
         try:
             # Clear existing content
@@ -407,20 +490,49 @@ class StaffHome:
                 font=('Helvetica', 14, 'bold')
             ).pack(pady=(0, 10))
             
-            # Create and add the date selection frame
-            date_selection = SalesReportFrame(self.display_frame, self.update_sales_report)
-            date_selection.pack(fill=tk.X)
+            # Create date selection frame if it doesn't exist
+            if not self.date_selection:
+                self.date_selection = SalesReportFrame(self.display_frame, self.update_sales_report)
+            self.date_selection.pack(fill=tk.X)
             
             # Add separator between date selection and report
             ttk.Separator(self.display_frame, orient='horizontal').pack(fill=tk.X, pady=10)
             
-            # Create frame for treeview
-            self.report_frame = ttk.Frame(self.display_frame)
+            # Create report frame if it doesn't exist
+            if not self.report_frame:
+                self.report_frame = ttk.Frame(self.display_frame)
+                
+                # Create text widget with scrollbars for report content
+                text_container = ttk.Frame(self.report_frame)
+                text_container.pack(fill=tk.BOTH, expand=True)
+                
+                v_scrollbar = ttk.Scrollbar(text_container)
+                v_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+                
+                h_scrollbar = ttk.Scrollbar(text_container, orient=tk.HORIZONTAL)
+                h_scrollbar.pack(side=tk.BOTTOM, fill=tk.X)
+                
+                self.report_text = tk.Text(
+                    text_container,
+                    wrap=tk.NONE,
+                    width=50,
+                    height=20,
+                    yscrollcommand=v_scrollbar.set,
+                    xscrollcommand=h_scrollbar.set,
+                    font=('Helvetica', 10)
+                )
+                self.report_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5, pady=5)
+                
+                v_scrollbar.config(command=self.report_text.yview)
+                h_scrollbar.config(command=self.report_text.xview)
+            
             self.report_frame.pack(fill=tk.BOTH, expand=True)
             
-            # Show initial report
-            headers, data = self.get_sales_report_data()
-            self.current_treeview = AutoTreeview(self.report_frame, headers, data, mode="readonly")
+            # Set/Reset initial text
+            self.report_text.config(state='normal')
+            self.report_text.delete(1.0, tk.END)
+            self.report_text.insert(tk.END, "Please select a date range and click 'Generate Report' to view the sales report.")
+            self.report_text.config(state='disabled')
 
         except Exception as e:
             messagebox.showerror("Error", f"Error displaying sales report: {str(e)}")
@@ -428,15 +540,15 @@ class StaffHome:
     def update_sales_report(self, start_date, end_date):
         """Update sales report with new date range"""
         try:
-            # Get new data based on date range
-            headers, data = self.get_sales_report_data(start_date, end_date)
-            
-            # Update treeview with new data
-            if self.current_treeview:
-                self.current_treeview.update_data(data)
-            else:
-                # Create new treeview if it doesn't exist
-                self.current_treeview = AutoTreeview(self.report_frame, headers, data, mode="readonly")
+            if self.report_text:  # Only update if text widget exists
+                # Get report content from controller
+                report_content = self.controller.staff_sales_report(start_date, end_date)
+                
+                # Update text widget with new content
+                self.report_text.config(state='normal')
+                self.report_text.delete(1.0, tk.END)
+                self.report_text.insert(tk.END, report_content)
+                self.report_text.config(state='disabled')
 
         except Exception as e:
             messagebox.showerror("Error", f"Error updating sales report: {str(e)}")
@@ -452,23 +564,3 @@ class StaffHome:
         if messagebox.askyesno("Quit Confirmation", "Are you sure you want to quit the application?"):
             self.root.destroy()
             self.login_window.destroy()
-
-# # Example usage
-# def main():
-#     root = tk.Tk()
-    
-#     class DummyStaff:
-#         def __init__(self):
-#             self.first_name = "John"
-#         def __str__(self):
-#             return "John Doe - Staff ID: 1001"
-    
-#     class DummyController:
-#         def staff_all_products(self):
-#             return "Sample products list"
-    
-#     staff_home = StaffHome(root, DummyStaff(), DummyController())
-#     root.mainloop()
-
-# if __name__ == "__main__":
-#     main()
