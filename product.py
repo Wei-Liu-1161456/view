@@ -477,8 +477,8 @@ class Product:
             # Calculate total
             total = subtotal + delivery_fee
             
-            # Create order data
-            self.temp_order_data = {
+            # 直接将数据存储在controller中
+            self.controller.temp_order_data = {
                 'cart_items': self.cart_dict,
                 'user': self.user,
                 'subtotal': subtotal,
@@ -490,7 +490,7 @@ class Product:
             
             # 调用支付回调显示支付界面
             if hasattr(self, 'payment_callback'):
-                self.payment_callback(self.temp_order_data)
+                self.payment_callback(self.controller.temp_order_data)
             else:
                 messagebox.showwarning("Warning", "Payment system not properly initialized")
                 
