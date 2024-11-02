@@ -200,9 +200,9 @@ class Company:
         return self.user.fulfill_order(order_id)
 
     # Customer Methods
-    def customer_check_out_order(self):
-        """Handle customer order checkout process"""
-        pass
+    def check_out_with_payment(self, data):
+        """Process customer checkout and payment"""
+        return self.user.check_out_with_payment(data)
 
     def customer_make_payment(self):
         """Process customer payment"""

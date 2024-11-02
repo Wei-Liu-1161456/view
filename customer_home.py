@@ -108,23 +108,6 @@ class AutoTreeview(ttk.Treeview):
                     row_values.append(str(value))
             self.insert("", "end", values=row_values)
 
-    # def update_data(self, data):
-    #     """Update the Treeview with new data."""
-    #     for item in self.get_children():
-    #         self.delete(item)
-        
-    #     for row in data:
-    #         row_values = []
-    #         for i, value in enumerate(row):
-    #             if value is None:
-    #                 row_values.append("N/A")
-    #             elif i == 4:
-    #                 row_values.append(str(value))
-    #             else:
-    #                 row_values.append(str(value))
-    #         self.insert("", "end", values=row_values)
-
-
 class CustomerHome:
     def __init__(self, root, customer, controller):
         """Initialize CustomerHome interface.

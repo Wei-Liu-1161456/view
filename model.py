@@ -398,7 +398,7 @@ class Customer(Person):
                 f"Name: {self.first_name} {self.last_name}\n"
                 f"Username: {self.username}\n"
                 f"Address: {self.cust_address}\n"
-                f"Balance: ${self.cust_balance:.2f}\n"
+                f"Balance: -${self.cust_balance:.2f}\n"
                 f"Maximum Owing: ${self.max_owing:.2f}\n"
                 f"Delivery Available: {'Yes' if self.can_delivery else 'No'}\n")
 
@@ -504,8 +504,7 @@ class Customer(Person):
                 print(f"Error processing payment: {e}")
                 return False
 
-    def check_out_with_payment(self, items: List['Item'], delivery_method: DeliveryMethod,
-                          payment_method: str, *, 
+    def check_out_with_payment(self, order_data: dict, payment_method: str, *, 
                           card_number: str = None,
                           card_type: str = None, 
                           card_expiry_date: date = None,
@@ -516,8 +515,7 @@ class Customer(Person):
         """Process checkout with immediate payment
         
         Args:
-            items (List[Item]): List of items to purchase
-            delivery_method (DeliveryMethod): Pickup or delivery
+            order_data (dict): Dictionary containing order information
             payment_method (str): Payment method to use
             Optional card payment parameters (see make_payment method)
             
@@ -525,15 +523,56 @@ class Customer(Person):
             bool: True if checkout successful, False otherwise
         """
         try:
+            # Convert cart items to appropriate Item instances
+            items = []
+            for cart_item in order_data['cart_items']:
+                item_type = cart_item['type']
+                name = cart_item['name']  # 使用完整的商品名称
+                price = cart_item['price']
+                quantity = cart_item['quantity']
+                
+                if item_type == 'weight':
+                    # WeightedVeggie(veg_name, weight, weight_per_kilo)
+                    item = WeightedVeggie(name, quantity, price)
+                    
+                elif item_type == 'unit':
+                    # UnitPriceVeggie(veg_name, quantity, price_per_unit)
+                    item = UnitPriceVeggie(name, int(quantity), price)
+                    
+                elif item_type == 'pack':
+                    # PackVeggie(veg_name, num_of_pack, price_per_pack)
+                    item = PackVeggie(name, int(quantity), price)
+                    
+                elif item_type == 'box':
+                    # PremadeBox(box_size, quantity, price)
+                    item = PremadeBox(name, int(quantity), price)  # name 是 "Small Box"等
+                    # 解析box contents并设置
+                    if cart_item['contents']:
+                        contents = []
+                        for content in cart_item['contents'].split(', '):
+                            # content 格式是 "Xxx by weight/kg x 1" 或类似格式
+                            veg_name = content.split(' x ')[0]  # 保留完整的商品名称，包括 "by weight/kg" 等
+                            contents.append(Veggie(veg_name))
+                        item.set_content(contents)
+                        
+                # 计算每个item的总价
+                item.calculate_total()
+                items.append(item)
+
             # Create order
             order = Order(
-                order_customer=self,
+                order_customer=order_data['user'],
                 order_date=date.today(),
-                delivery_method=delivery_method
+                delivery_method=DeliveryMethod.DELIVERY if order_data['is_delivery'] else DeliveryMethod.PICKUP
             )
             order.set_items(items)
 
-            # Verify order amount
+            # Verify order amount equals the total from order_data
+            if abs(order.total_amount - order_data['total']) > Decimal('0.01'):  # 允许0.01的误差
+                print("Order amount mismatch")
+                return False
+
+            # Verify credit limit
             if not self.can_place_order(order.total_amount):
                 print("Order amount exceeds available credit")
                 return False
@@ -572,9 +611,9 @@ class Customer(Person):
 
             # Update order status
             order.order_status = OrderStatus.PENDING
-            self.list_of_orders.append(order)
+            order_data['user'].list_of_orders.append(order)
             orders[order.order_number] = order
-            customers[self.cust_id] = self
+            customers[order_data['user'].cust_id] = order_data['user']
 
             # Save updates
             with open('data/orders.pkl', 'wb') as file:
@@ -586,7 +625,7 @@ class Customer(Person):
             return True
 
         except Exception as e:
-            print(f"Error during checkout and payment: {e}")
+            print(f"Error processing checkout: {str(e)}")
             return False
         
     def charge_to_account(self, amount: Decimal) -> bool:
@@ -753,91 +792,115 @@ class CorporateCustomer(Customer):
             print(f"Error checking order possibility: {e}")
             return False
         
-    def check_out_with_payment(self, items: List['Item'], delivery_method: DeliveryMethod,
-                            payment_method: str, *, 
-                            card_number: str = None,
-                            card_type: str = None, 
-                            card_expiry_date: date = None,
-                            cvv: str = None,
-                            card_holder: str = None,
-                            bank_name: str = None,
-                            debit_card_num: str = None) -> bool:
-            """Process checkout with immediate payment for corporate customer
+    def check_out_with_payment(self, order_data: dict, payment_method: str, *, 
+                          card_number: str = None,
+                          card_type: str = None, 
+                          card_expiry_date: date = None,
+                          cvv: str = None,
+                          card_holder: str = None,
+                          bank_name: str = None,
+                          debit_card_num: str = None) -> bool:
+        """Process checkout with immediate payment for corporate customer
+        
+        Args:
+            order_data (dict): Dictionary containing order information
+            payment_method (str): Payment method to use
+            Optional card payment parameters
             
-            Args:
-                items (List[Item]): List of items to purchase
-                delivery_method (DeliveryMethod): Pickup or delivery
-                payment_method (str): Payment method to use
-                Optional card payment parameters (see make_payment method)
+        Returns:
+            bool: True if checkout successful, False otherwise
+        """
+        try:
+            # Convert cart items to appropriate Item instances
+            items = []
+            for cart_item in order_data['cart_items']:
+                item_type = cart_item['type']
+                name = cart_item['name']
+                price = cart_item['price']
+                quantity = cart_item['quantity']
                 
-            Returns:
-                bool: True if checkout successful, False otherwise
-            """
-            try:
-                # Create order
-                order = Order(
-                    order_customer=self,
-                    order_date=date.today(),
-                    delivery_method=delivery_method
-                )
-                order.set_items(items)
+                if item_type == 'weight':
+                    item = WeightedVeggie(name, quantity, price)
+                elif item_type == 'unit':
+                    item = UnitPriceVeggie(name, int(quantity), price)
+                elif item_type == 'pack':
+                    item = PackVeggie(name, int(quantity), price)
+                elif item_type == 'box':
+                    item = PremadeBox(name, int(quantity), price)
+                    if cart_item['contents']:
+                        contents = []
+                        for content in cart_item['contents'].split(', '):
+                            veg_name = content.split(' x ')[0]
+                            contents.append(Veggie(veg_name))
+                        item.set_content(contents)
+                
+                item.calculate_total()
+                items.append(item)
 
-                # Verify order amount
-                if not self.can_place_order(order.total_amount):
-                    print("Order amount exceeds available credit limit for corporate customer")
+            # Create order
+            order = Order(
+                order_customer=self,
+                order_date=date.today(),
+                delivery_method=DeliveryMethod.DELIVERY if order_data['is_delivery'] else DeliveryMethod.PICKUP
+            )
+            order.set_items(items)
+
+            # Verify order amount
+            if not self.can_place_order(order.total_amount):
+                print("Order amount exceeds available credit limit for corporate customer")
+                return False
+
+            # Process payment
+            if payment_method == "account":
+                if not self.charge_to_account(order.total_amount):
+                    return False
+            elif payment_method == "credit":
+                if not self.make_payment(
+                    payment_amount=order.total_amount,
+                    payment_date=date.today(),
+                    payment_method=payment_method,
+                    card_number=card_number,
+                    card_type=card_type,
+                    card_expiry_date=card_expiry_date,
+                    cvv=cvv,
+                    card_holder=card_holder
+                ):
+                    return False
+            else:  # debit
+                if not self.make_payment(
+                    payment_amount=order.total_amount,
+                    payment_date=date.today(),
+                    payment_method=payment_method,
+                    bank_name=bank_name,
+                    debit_card_num=debit_card_num
+                ):
                     return False
 
-                # Process payment
-                if payment_method == "account":
-                    if not self.charge_to_account(order.total_amount):
-                        return False
-                elif payment_method == "credit":
-                    if not self.make_payment(
-                        payment_amount=order.total_amount,
-                        payment_date=date.today(),
-                        payment_method=payment_method,
-                        card_number=card_number,
-                        card_type=card_type,
-                        card_expiry_date=card_expiry_date,
-                        cvv=cvv,
-                        card_holder=card_holder
-                    ):
-                        return False
-                else:  # debit
-                    if not self.make_payment(
-                        payment_amount=order.total_amount,
-                        payment_date=date.today(),
-                        payment_method=payment_method,
-                        bank_name=bank_name,
-                        debit_card_num=debit_card_num
-                    ):
-                        return False
+            # Save order
+            with open('data/orders.pkl', 'rb') as file:
+                orders = pickle.load(file)
+            with open('data/corporate_customers.pkl', 'rb') as file:
+                customers = pickle.load(file)
 
-                # Save order
-                with open('data/orders.pkl', 'rb') as file:
-                    orders = pickle.load(file)
-                with open('data/corporate_customers.pkl', 'rb') as file:
-                    customers = pickle.load(file)
+            # Update order status
+            order.order_status = OrderStatus.PENDING
+            self.list_of_orders.append(order)
+            orders[order.order_number] = order
+            customers[self.cust_id] = self
 
-                # Update order status
-                order.order_status = OrderStatus.PENDING
-                self.list_of_orders.append(order)
-                orders[order.order_number] = order
-                customers[self.cust_id] = self
+            # Save updates
+            with open('data/orders.pkl', 'wb') as file:
+                pickle.dump(orders, file)
+            with open('data/corporate_customers.pkl', 'wb') as file:
+                pickle.dump(customers, file)
 
-                # Save updates
-                with open('data/orders.pkl', 'wb') as file:
-                    pickle.dump(orders, file)
-                with open('data/corporate_customers.pkl', 'wb') as file:
-                    pickle.dump(customers, file)
+            print(f"Corporate customer order {order.order_number} created and paid successfully")
+            print(f"Applied discount rate: {self.discount_rate:.0%}")
+            return True
 
-                print(f"Corporate customer order {order.order_number} created and paid successfully")
-                print(f"Applied discount rate: {self.discount_rate:.0%}")
-                return True
-
-            except Exception as e:
-                print(f"Error during corporate checkout and payment: {e}")
-                return False
+        except Exception as e:
+            print(f"Error during corporate checkout and payment: {e}")
+            return False
         
     def charge_to_account(self, amount: Decimal) -> bool:
         """Charge amount to corporate customer account

@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import date
-from decimal import Decimal
+from decimal import Decimal, ROUND_DOWN
 
 class Payment:
     def __init__(self, parent, controller=None):
@@ -231,30 +231,10 @@ class Payment:
             return True
         return new_val.isdigit() and len(new_val) <= 3
 
-    def _confirm_account_payment(self):
-        """Handle account payment confirmation"""
-        try:
-            order_data = {
-                **self.controller.temp_order_data,  # 展开之前的订单数据
-                'payment_method': 'account',
-                'payment_details': {
-                    'payment_type': 'account',
-                    'date': date.today().strftime("%Y-%m-%d")
-                }
-            }
-            
-            # 创建订单和支付记录
-            self.controller.create_order(order_data)
-            
-            messagebox.showinfo("Success", "Payment has been charged to your account.")
-            self._on_cancel()
-        except Exception as e:
-            messagebox.showerror("Error", f"Error processing account payment: {str(e)}")
-
     def _confirm_credit_payment(self):
         """Handle credit card payment confirmation"""
         try:
-            # Get form values
+            # 获取表单值
             card_type = self.credit_card_type.get()
             card_number = self.credit_card_number.get()
             cvv = self.credit_cvv.get()
@@ -276,33 +256,37 @@ class Payment:
                 messagebox.showwarning("Validation Error", "CVV must be exactly 3 digits")
                 return
             
-            # 创建完整的订单数据
-            order_data = {
-                **self.controller.temp_order_data,  # 展开之前的订单数据
-                'payment_method': 'credit',
-                'payment_details': {
-                    'payment_type': 'credit',
-                    'card_type': card_type,
-                    'card_number': card_number[-4:],  # 只保存后4位
-                    'holder': holder,
-                    'expiry': f"{month}/{year}",
-                    'date': date.today().strftime("%Y-%m-%d")
-                }
-            }
-            
-            # 创建订单和支付记录
-            self.controller.create_order(order_data)
-            
-            messagebox.showinfo("Success", "Credit card payment processed successfully.")
-            self._on_cancel()
-            
+            if hasattr(self.controller, 'temp_order_data'):
+                payment_date = date.today()
+                card_expiry_date = date(int(year), int(month), 1)
+                
+                # 调用check_out_with_payment方法时传入所有必要参数
+                success = self.controller.temp_order_data['user'].check_out_with_payment(
+                    order_data=self.controller.temp_order_data,
+                    payment_method="credit",
+                    card_number=card_number,
+                    card_type=card_type,
+                    card_expiry_date=card_expiry_date,  # 使用正确的date对象
+                    cvv=cvv,
+                    card_holder=holder
+                )
+                
+                if success:
+                    messagebox.showinfo("Success", "Credit card payment processed successfully.")
+                    self._on_cancel()
+                else:
+                    messagebox.showerror("Error", f"The current balance is owing too much, \nplease settle the outstanding balance -${self.controller.user.cust_balance.quantize(Decimal('0.00'), rounding=ROUND_DOWN)} first")
+
+            else:
+                raise ValueError("Order data not found. Please try again.")
+                
         except Exception as e:
             messagebox.showerror("Error", f"Error processing credit card payment: {str(e)}")
 
     def _confirm_debit_payment(self):
         """Handle debit card payment confirmation"""
         try:
-            # Get form values
+            # 获取表单值
             bank_name = self.debit_bank_name.get()
             card_number = self.debit_card_number.get()
             
@@ -320,26 +304,46 @@ class Payment:
                 messagebox.showwarning("Validation Error", "Card number must be exactly 16 digits")
                 return
             
-            # 创建完整的订单数据
-            order_data = {
-                **self.controller.temp_order_data,  # 展开之前的订单数据
-                'payment_method': 'debit',
-                'payment_details': {
-                    'payment_type': 'debit',
-                    'bank_name': bank_name,
-                    'card_number': card_number[-4:],  # 只保存后4位
-                    'date': date.today().strftime("%Y-%m-%d")
-                }
-            }
-            
-            # 创建订单和支付记录
-            self.controller.create_order(order_data)
-            
-            messagebox.showinfo("Success", "Debit card payment processed successfully.")
-            self._on_cancel()
-            
+            if hasattr(self.controller, 'temp_order_data'):
+                # 调用check_out_with_payment方法时传入所有必要参数
+                success = self.controller.temp_order_data['user'].check_out_with_payment(
+                    order_data=self.controller.temp_order_data,
+                    payment_method="debit",
+                    bank_name=bank_name,
+                    debit_card_num=card_number
+                )
+                
+                if success:
+                    messagebox.showinfo("Success", "Debit card payment processed successfully.")
+                    self._on_cancel()
+                else:
+                    messagebox.showerror("Error", f"The current balance is owing too much, \nplease settle the outstanding balance -${self.controller.user.cust_balance.quantize(Decimal('0.00'), rounding=ROUND_DOWN)} first")
+            else:
+                raise ValueError("Order data not found. Please try again.")
+                
         except Exception as e:
             messagebox.showerror("Error", f"Error processing debit card payment: {str(e)}")
+
+    def _confirm_account_payment(self):
+        """Handle account payment confirmation"""
+        try:
+            if hasattr(self.controller, 'temp_order_data'):
+                # 调用check_out_with_payment方法时传入所有必要参数
+                success = self.controller.temp_order_data['user'].check_out_with_payment(
+                    order_data=self.controller.temp_order_data,
+                    payment_method="account"
+                )
+                
+                if success:
+                    messagebox.showinfo("Success", "Payment has been charged to your account.")
+                    self._on_cancel()
+                else:
+                    messagebox.showerror("Error", f"The current balance is owing too much, \nplease settle the outstanding balance -${self.controller.user.cust_balance.quantize(Decimal('0.00'), rounding=ROUND_DOWN)} first")
+            else:
+                raise ValueError("Order data not found. Please try again.")
+                
+        except Exception as e:
+            messagebox.showerror("Error", f"Error processing account payment: {str(e)}")
 
     def _on_cancel(self):
         """Handle payment cancellation"""
