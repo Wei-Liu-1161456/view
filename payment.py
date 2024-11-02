@@ -234,6 +234,18 @@ class Payment:
     def _confirm_account_payment(self):
         """Handle account payment confirmation"""
         try:
+            order_data = {
+                **self.controller.temp_order_data,  # 展开之前的订单数据
+                'payment_method': 'account',
+                'payment_details': {
+                    'payment_type': 'account',
+                    'date': date.today().strftime("%Y-%m-%d")
+                }
+            }
+            
+            # 创建订单和支付记录
+            self.controller.create_order(order_data)
+            
             messagebox.showinfo("Success", "Payment has been charged to your account.")
             self._on_cancel()
         except Exception as e:
@@ -264,7 +276,23 @@ class Payment:
                 messagebox.showwarning("Validation Error", "CVV must be exactly 3 digits")
                 return
             
-            # All validations passed, process payment
+            # 创建完整的订单数据
+            order_data = {
+                **self.controller.temp_order_data,  # 展开之前的订单数据
+                'payment_method': 'credit',
+                'payment_details': {
+                    'payment_type': 'credit',
+                    'card_type': card_type,
+                    'card_number': card_number[-4:],  # 只保存后4位
+                    'holder': holder,
+                    'expiry': f"{month}/{year}",
+                    'date': date.today().strftime("%Y-%m-%d")
+                }
+            }
+            
+            # 创建订单和支付记录
+            self.controller.create_order(order_data)
+            
             messagebox.showinfo("Success", "Credit card payment processed successfully.")
             self._on_cancel()
             
@@ -292,7 +320,21 @@ class Payment:
                 messagebox.showwarning("Validation Error", "Card number must be exactly 16 digits")
                 return
             
-            # All validations passed, process payment
+            # 创建完整的订单数据
+            order_data = {
+                **self.controller.temp_order_data,  # 展开之前的订单数据
+                'payment_method': 'debit',
+                'payment_details': {
+                    'payment_type': 'debit',
+                    'bank_name': bank_name,
+                    'card_number': card_number[-4:],  # 只保存后4位
+                    'date': date.today().strftime("%Y-%m-%d")
+                }
+            }
+            
+            # 创建订单和支付记录
+            self.controller.create_order(order_data)
+            
             messagebox.showinfo("Success", "Debit card payment processed successfully.")
             self._on_cancel()
             
@@ -313,26 +355,43 @@ class Payment:
     def get_main_frame(self):
         """Return main frame for integration with other interfaces"""
         return self.main_frame
+    
+    def _on_cancel(self):
+        """Handle payment cancellation.
+        Properly cleanup and close the payment window.
+        """
+        try:
+            # Get the toplevel window containing this payment frame
+            payment_window = self.main_frame.master
+            
+            # Release the grab before destroying the window
+            payment_window.grab_release()
+            
+            # Destroy the window
+            payment_window.destroy()
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Error during payment cancellation: {str(e)}")
 
 
-if __name__ == "__main__":
-    root = tk.Tk()
-    root.title("Payment System")
-    root.geometry("500x600")
+# if __name__ == "__main__":
+#     root = tk.Tk()
+#     root.title("Payment System")
+#     root.geometry("500x600")
     
-    # Create payment app instance
-    payment_app = Payment(root)
+#     # Create payment app instance
+#     payment_app = Payment(root)
     
-    # Set example order amounts
-    payment_app.set_order_amounts(
-        Decimal('100.00'),
-        Decimal('5.00'),
-        Decimal('10.00'),
-        Decimal('105.00')
-    )
+#     # Set example order amounts
+#     payment_app.set_order_amounts(
+#         Decimal('100.00'),
+#         Decimal('5.00'),
+#         Decimal('10.00'),
+#         Decimal('105.00')
+#     )
     
-    # Pack main frame
-    payment_app.get_main_frame().pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+#     # Pack main frame
+#     payment_app.get_main_frame().pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
     
-    # Start main loop
-    root.mainloop()
+#     # Start main loop
+#     root.mainloop()

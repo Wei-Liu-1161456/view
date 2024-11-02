@@ -616,50 +616,90 @@ class Customer(Person):
                 print(f"Error charging to account: {e}")
                 return False
 
-    def view_current_orders(self) -> List['Order']:
-        """View customer's current (pending) orders
+    def view_current_orders(self) -> Dict[str, Dict[str, Any]]:
+        """View customer's current (pending) orders in a formatted dictionary
         
         Returns:
-            List[Order]: List of pending orders
+            Dict[str, Dict[str, Any]]: Dictionary containing customer's pending orders with their details
         """
         try:
             with open('data/orders.pkl', 'rb') as file:
                 orders = pickle.load(file)
-                current_orders = [
-                    order for order in orders.values()
-                    if order.order_customer.cust_id == self.cust_id 
-                    and order.order_status == OrderStatus.PENDING
-                ]
-                print(f"\nCurrent orders for customer {self.cust_id}:")
-                for order in current_orders:
-                    print(f"\n{order}")
+                # Filter orders for current customer and pending status
+                pending_orders = {
+                    k: v for k, v in orders.items() 
+                    if v.order_customer.cust_id == self.cust_id 
+                    and v.order_status == OrderStatus.PENDING
+                }
+                
+                # Create the result dictionary with the same format as staff view
+                current_orders = {
+                    order.order_number: {
+                        "Customer": f"{order.order_customer.first_name} {order.order_customer.last_name}",
+                        "Date": order.order_date,
+                        "Status": order.order_status.value,
+                        "Items": self._get_order_items_string(order),
+                        "Subtotal": order.subtotal,
+                        "Delivery Fee": order.delivery_fee,
+                        "Total Amount": order.total_amount
+                    } 
+                    for order in pending_orders.values()
+                }
+                
                 return current_orders
         except Exception as e:
-            print(f"Error viewing current orders: {e}")
-            return []
+            return {"Error": f"Error loading orders: {str(e)}"}
 
-    def view_previous_orders(self) -> List['Order']:
-        """View customer's fulfilled orders
+    def view_previous_orders(self) -> Dict[str, Dict[str, Any]]:
+        """View customer's previous (fulfilled) orders in a formatted dictionary
         
         Returns:
-            List[Order]: List of fulfilled orders
+            Dict[str, Dict[str, Any]]: Dictionary containing customer's fulfilled orders with their details
         """
         try:
             with open('data/orders.pkl', 'rb') as file:
                 orders = pickle.load(file)
-                previous_orders = [
-                    order for order in orders.values()
-                    if order.order_customer.cust_id == self.cust_id 
-                    and order.order_status == OrderStatus.FULFILLED
-                ]
-                print(f"\nPrevious orders for customer {self.cust_id}:")
-                for order in previous_orders:
-                    print(f"\n{order}")
+                # Filter orders for current customer and fulfilled status
+                fulfilled_orders = {
+                    k: v for k, v in orders.items() 
+                    if v.order_customer.cust_id == self.cust_id 
+                    and v.order_status == OrderStatus.FULFILLED
+                }
+                
+                # Create the result dictionary with the same format as staff view
+                previous_orders = {
+                    order.order_number: {
+                        "Customer": f"{order.order_customer.first_name} {order.order_customer.last_name}",
+                        "Date": order.order_date,
+                        "Status": order.order_status.value,
+                        "Items": self._get_order_items_string(order),
+                        "Subtotal": order.subtotal,
+                        "Delivery Fee": order.delivery_fee,
+                        "Total Amount": order.total_amount
+                    } 
+                    for order in fulfilled_orders.values()
+                }
+                
                 return previous_orders
         except Exception as e:
-            print(f"Error viewing previous orders: {e}")
-            return []
+            return {"Error": f"Error loading orders: {str(e)}"}
 
+    def _get_order_items_string(self, order) -> str:
+        """Helper method to format order items as string
+        
+        Args:
+            order: Order object containing items to format
+            
+        Returns:
+            str: Formatted string containing items details
+        """
+        items_str = ""
+        for item in order.list_of_items:
+            if hasattr(item, 'quantity'):
+                items_str += f"{item.item_name} x {item.quantity} "
+            else:
+                items_str += f"{item.item_name} "
+        return items_str.strip()
 
 class CorporateCustomer(Customer):
     def __init__(self, first_name: str, last_name: str, username: str, password: str, 

@@ -435,7 +435,7 @@ class Product:
             messagebox.showerror("Error", f"Error adding to cart: {str(e)}")
 
     def _check_out_order(self):
-        """Submit the order and save the cart data."""
+        """准备订单数据并显示支付界面"""
         try:
             # Check if the cart is empty
             if not self.cart_tree.get_children():
@@ -444,7 +444,7 @@ class Product:
             
             # Initialize cart list and total
             self.cart_dict = []
-            total = Decimal('0.00')
+            subtotal = Decimal('0.00')
             
             # Iterate through cart items
             for item in self.cart_tree.get_children():
@@ -452,74 +452,50 @@ class Product:
                 
                 # Parse values [Product, Quantity, Price, Subtotal, Contents]
                 name = values[0]
-                quantity = Decimal(values[1])  # Allow decimal quantities
+                quantity = Decimal(values[1])
                 price = Decimal(values[2].replace('$', ''))
-                subtotal = Decimal(values[3].replace('$', ''))
+                subtotal_item = Decimal(values[3].replace('$', ''))
                 contents = values[4] if values[4] else ""
                 
-                # Determine the item type
-                if 'Box' in name:
-                    item_type = 'box'
-                else:
-                    # Determine the type based on the product name
-                    if 'weight/kg' in name:
-                        item_type = 'weight'
-                    elif 'unit' in name:
-                        item_type = 'unit'
-                    elif 'pack' in name:
-                        item_type = 'pack'
-                    else:
-                        # Log if the type cannot be determined
-                        print(f"Warning: Unable to determine type for item: {name}")
-                        item_type = 'unknown'
+                # Accumulate subtotal
+                subtotal += subtotal_item
                 
                 # Create item dictionary and append to list
                 cart_item = {
-                    'type': item_type,          # Item type: 'box', 'weight', 'unit', 'pack'
-                    'name': name,               # Original full name
-                    'quantity': quantity,       # Quantity
-                    'price': price,             # Unit price
-                    'subtotal': subtotal,       # Subtotal
-                    'contents': contents        # Box contents (if it's a box type)
+                    'type': 'box' if 'Box' in name else self._determine_item_type(name),
+                    'name': name,
+                    'quantity': quantity,
+                    'price': price,
+                    'subtotal': subtotal_item,
+                    'contents': contents
                 }
-            
                 self.cart_dict.append(cart_item)
-                
-                # Accumulate total price
-                total += subtotal
-                
-            # Show payment options dialog
-            response = messagebox.askyesnocancel(
-                "Payment Options",
-                f"Total Amount: ${float(total):.2f}\n\n"
-                "Would you like to pay now?\n\n"
-                " - Pay Now : Click 'Yes'\n\n"
-                " - Pay Later (Charge to Account) : Click 'No'\n\n"
-                " - Cancel : Click 'Cancel'"
-            )
             
-            # 打印订单信息
-            print(self.cart_dict)
-
-            if response is None:  # Cancel was clicked
-                return
-                
-            if response:  # Yes was clicked - Pay Now
-                self._clear_cart()
-                # Call the parent component's callback to switch to the payment interface
-                if hasattr(self.get_main_frame().master, 'make_payment_callback'):
-                    self.get_main_frame().master.make_payment_callback()
-                messagebox.showinfo("Payment", f"Please proceed with the payment of ${float(total):.2f}")
-            else:  # No was clicked - Pay Later
-                self._clear_cart()
-                messagebox.showinfo(
-                    "Charge to Account", 
-                    f"The amount ${float(total):.2f} has been charged to your account."
-                )
+            # Calculate delivery fee if delivery is selected
+            delivery_fee = Decimal('10.00') if self.delivery_var.get() else Decimal('0.00')
+            
+            # Calculate total
+            total = subtotal + delivery_fee
+            
+            # Create order data
+            self.temp_order_data = {
+                'cart_items': self.cart_dict,
+                'user': self.user,
+                'subtotal': subtotal,
+                'delivery_fee': delivery_fee,
+                'discount': Decimal('0.00'),  # 如果有折扣逻辑可以在这里添加
+                'total': total,
+                'is_delivery': self.delivery_var.get(),
+            }
+            
+            # 调用支付回调显示支付界面
+            if hasattr(self, 'payment_callback'):
+                self.payment_callback(self.temp_order_data)
+            else:
+                messagebox.showwarning("Warning", "Payment system not properly initialized")
                 
         except Exception as e:
             messagebox.showerror("Error", f"Error checking out order: {str(e)}")
-            # Print detailed error information for debugging
             import traceback
             print(f"Error details:\n{traceback.format_exc()}")
 
@@ -540,7 +516,48 @@ class Product:
                 self.cart_tree.delete(item)
         except Exception as e:
             messagebox.showerror("Error", f"Error clearing cart: {str(e)}")
+    
+    def _determine_item_type(self, name):
+        """
+        Determine the type of item based on its name.
+        
+        Args:
+            name (str): Name of the product (e.g. "Spinach by weight/kg", "Small Box")
+            
+        Returns:
+            str: Type of the product ('weight', 'unit', 'pack', 'box', or 'unknown')
+        """
+        # Box类型的特殊处理
+        if name in ["Small Box", "Medium Box", "Large Box"]:
+            return 'box'
+        
+        # 根据商品名称中的标识判断类型
+        if "by weight/kg" in name:
+            return 'weight'
+        elif "by unit" in name:
+            return 'unit'
+        elif "by pack" in name:
+            return 'pack'
+        
+        return 'unknown'  # 如果都没找到，返回unknown
+
 
     def get_main_frame(self):
         """返回主Frame以便集成到其他界面"""
         return self.main_frame
+
+   
+    def bind_payment_callback(self, callback):
+        """Bind payment window callback"""
+        self.payment_callback = callback
+
+    def on_checkout(self):
+        """Handle checkout button click event"""
+        if hasattr(self, 'payment_callback'):
+            order_data = {
+                'subtotal': self.subtotal,
+                'discount': self.discount,
+                'delivery_fee': self.delivery_fee,
+                'total': self.total
+            }
+            self.payment_callback(order_data)

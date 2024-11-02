@@ -208,10 +208,10 @@ class Company:
         """Process customer payment"""
         pass
 
-    def customer_current_orders(self):
+    def customer_current_orders(self, customer):
         """Allow customers to view their current orders"""
-        pass
+        return customer.view_current_orders()
 
-    def customer_previous_orders(self):
+    def customer_previous_orders(self,customer):
         """Allow customers to view their order history"""
-        pass
+        return customer.view_previous_orders()
