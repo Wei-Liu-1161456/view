@@ -169,15 +169,7 @@ class Staff(Person):
             str: Formatted sales report containing:
                 - Report header with date range
                 - Total sales amount
-                - Details for each order in the date range:
-                    - Order number
-                    - Customer information
-                    - Order date
-                    - Order items
-                    - Pricing details (original total, discount if applicable, final amount)
-                    
-        Note:
-            For corporate customers, additional discount information is included.
+                - Details for each order in the date range
         """
         try:
             # Load orders from pickle file
@@ -196,7 +188,7 @@ class Staff(Person):
             # Initialize report string
             report = []
             report.append(f"=== Sales Report ({start_date} to {end_date}) ===")
-            report.append(f"Total Sales: ${total_sales}\n")
+            report.append(f"Total Sales: ${total_sales:.2f}\n")
             
             # Add details for each order
             for order in valid_orders:
@@ -204,23 +196,44 @@ class Staff(Person):
                 report.append(f"Order Number: {order.order_number}")
                 report.append(f"Customer: {order.order_customer.first_name} {order.order_customer.last_name}")
                 report.append(f"Date: {order.order_date}")
+                report.append(f"Delivery Method: {order.delivery_method.value}")
                 
-                # Add order items
-                items_str = self._get_order_items_str(order)  # Assuming you'll create this helper method
-                report.append(items_str)
+                # Add order items with proper handling of different types
+                report.append("Items:")
+                for item in order.list_of_items:
+                    if isinstance(item, PremadeBox):
+                        # Handle PremadeBox items
+                        report.append(f"  - {item.item_name} (Box) x {item.quantity} x ${item.price:.2f} each")
+                        report.append("    Contents:")
+                        for content in item.box_content:
+                            if isinstance(content, WeightedVeggie):
+                                report.append(f"      * {content.item_name} ({content.weight}kg)")
+                            elif isinstance(content, PackVeggie):
+                                report.append(f"      * {content.item_name} ({content.num_of_pack} packs)")
+                            elif isinstance(content, UnitPriceVeggie):
+                                report.append(f"      * {content.item_name} ({content.quantity} units)")
+                    else:
+                        # Handle individual veggie items
+                        if isinstance(item, WeightedVeggie):
+                            report.append(f"  - {item.item_name}: {item.weight}kg x ${item.price_per_kilo:.2f}/kg")
+                        elif isinstance(item, PackVeggie):
+                            report.append(f"  - {item.item_name}: {item.num_of_pack} packs x ${item.price_per_pack:.2f}/pack")
+                        elif isinstance(item, UnitPriceVeggie):
+                            report.append(f"  - {item.item_name}: {item.quantity} units x ${item.price_per_unit:.2f}/unit")
                 
                 # Add pricing details
+                report.append(f"Subtotal: ${order.subtotal:.2f}")
                 if isinstance(order.order_customer, CorporateCustomer):
-                    report.append(f"Original Total: ${order.subtotal}")
-                    report.append(f"Discount ({order.order_customer.discount_rate * 100}%): ${order.discount}")
-                report.append(f"Final Sales Amount: ${order.sales_amount}\n")
+                    report.append(f"Corporate Discount ({order.order_customer.discount_rate * 100}%): ${order.discount:.2f}")
+                report.append(f"Delivery Fee: ${order.delivery_fee:.2f}")
+                report.append(f"Final Sales Amount: ${order.sales_amount:.2f}\n")
             
-            # Join all report lines with newlines
-            print('\'n'.join(report))
+            # Join all report lines with newlines and return
             return '\n'.join(report)
             
         except Exception as e:
             error_msg = f"Error generating sales report: {e}"
+            print(error_msg)  # For debugging
             return error_msg
 
     def _get_order_items_str(self, order) -> str:
